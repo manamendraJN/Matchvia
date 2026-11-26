@@ -68,8 +68,8 @@ changed) before the step that needs it.
 
 ### Milestone 0: Foundation (about 4 days)
 
-- [ ] **S01** Project skeleton and local development · 1.5 d
-- [ ] **S02** CI pipeline and production security settings · 1 d
+- [x] **S01** Project skeleton and local development · 1.5 d
+- [x] **S02** CI pipeline and production security settings · 1 d
 - [ ] **S03** Custom user model and `core` helpers · 1.5 d
 
 ### Milestone 1: Riskiest core (about 21 days)
@@ -622,4 +622,6 @@ security.
 
 | Step | Started | Finished | Actual days | Notes |
 |---|---|---|---|---|
-| | | | | |
+| S01 | 26 Nov 2026 | 26 Nov 2026 | 0.5 | Prompt C1. Local PostgreSQL 17 instead of Docker Compose for now (Docker not installed); `compose.yaml` comes with the Dockerfile in S12 |
+| S02 | 26 Nov 2026 | 26 Nov 2026 | (with S01) | Prompt C1. Branch protection on `main` must be switched on by hand in GitHub settings |
+| S09 (part) | 26 Nov 2026 | | | Prompt C1: base template, vendored htmx 2.0.11 (eval off), Tailwind standalone CLI, PWA manifest and icons, CSP nonces. Components, formatters, pseudo-locale, error pages and service worker still to do |
