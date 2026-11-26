@@ -20,3 +20,12 @@ document.addEventListener("click", (event) => {
     { enableHighAccuracy: true, timeout: 15000 },
   );
 });
+
+// Buttons marked data-disable-on-submit are disabled once their form is sent, so a slow network
+// can't cause a double booking attempt (screens 1.3). The server is still safe if it happens.
+document.addEventListener("submit", (event) => {
+  event.target.querySelectorAll("[data-disable-on-submit]").forEach((button) => {
+    // Let the browser include the button in the submission first, then disable it.
+    setTimeout(() => { button.disabled = true; }, 0);
+  });
+});

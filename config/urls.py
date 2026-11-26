@@ -5,10 +5,12 @@ from django.urls import include, path
 from django.views.generic import TemplateView
 
 from accounts.services import PRIVACY_VERSION, TERMS_VERSION
+from bookings import views as booking_views
 from core.views import healthz
 
 urlpatterns = [
-    path("", TemplateView.as_view(template_name="home.html"), name="home"),
+    path("", booking_views.home, name="home"),
+    path("", include("bookings.urls")),
     path("healthz", healthz, name="healthz"),
     path("auth/", include("accounts.urls")),
     path("me/", include("accounts.urls_me")),

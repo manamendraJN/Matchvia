@@ -37,7 +37,7 @@
     </div>
   </header>
 
-  <main id="main" class="mx-auto w-full max-w-screen-sm flex-1 px-4 py-6">
+  <main id="main" class="mx-auto w-full max-w-screen-sm flex-1 px-4 pt-6 pb-24">
     {% if messages %}
       <ul class="mb-4 space-y-2" role="status">
         {% for message in messages %}
@@ -48,6 +48,16 @@
     {% block content %}{% endblock %}
   </main>
 
-  {% block bottom_nav %}{% endblock %}
+  {% block bottom_nav %}
+    {# Player navigation: icon-free text labels, big tap targets (screens 1.2). Teams comes in C8. #}
+    <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white" aria-label="{% translate 'Main' %}">
+      {% url 'home' as u_search %}{% url 'my_bookings' as u_bookings %}{% url 'me:account' as u_account %}
+      <ul class="mx-auto grid max-w-screen-sm grid-cols-3 text-center text-sm font-medium">
+        <li><a href="{{ u_search }}" class="block py-4 {% if request.path == u_search or request.path == '/search/' %}text-green-700{% else %}text-slate-600{% endif %}">{% translate "Search" %}</a></li>
+        <li><a href="{{ u_bookings }}" class="block py-4 {% if u_bookings in request.path %}text-green-700{% else %}text-slate-600{% endif %}">{% translate "My bookings" %}</a></li>
+        <li><a href="{{ u_account }}" class="block py-4 {% if u_account in request.path %}text-green-700{% else %}text-slate-600{% endif %}">{% translate "Account" %}</a></li>
+      </ul>
+    </nav>
+  {% endblock %}
 </body>
 </html>

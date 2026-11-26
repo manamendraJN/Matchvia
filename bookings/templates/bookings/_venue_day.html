@@ -1,0 +1,47 @@
+{% load i18n matchvia %}
+{# One day on the venue page (P3). Returned alone when the day strip is used (HTMX). #}
+{% if view.state == "closed" %}
+  <p class="rounded-lg bg-slate-100 px-4 py-3">{% blocktranslate with day=day_label %}Closed on {{ day }}.{% endblocktranslate %}</p>
+{% elif view.state == "beyond_horizon" %}
+  <p class="rounded-lg bg-slate-100 px-4 py-3">{% blocktranslate with n=venue.settings.booking_horizon_days %}Online booking opens {{ n }} days ahead.{% endblocktranslate %}</p>
+{% elif view.state == "past" %}
+  <p class="rounded-lg bg-slate-100 px-4 py-3">{% translate "Choose today or a later day." %}</p>
+{% else %}
+  {% if not view.has_free %}
+    <div class="mb-4 rounded-lg bg-amber-50 px-4 py-3 text-amber-900">
+      <p>{% blocktranslate with day=day_label %}Fully booked on {{ day }}.{% endblocktranslate %}</p>
+      {% if next_day %}<a href="?date={{ next_day.isoformat }}" class="font-semibold underline">{% blocktranslate with day=next_day|day %}See {{ day }}{% endblocktranslate %}</a>{% endif %}
+    </div>
+  {% endif %}
+  <div class="space-y-5">
+    {% for court, chips in view.courts %}
+      <section class="space-y-2">
+        <h2 class="font-semibold">{{ court.name }} <span class="text-sm font-normal text-slate-600">· {{ court.get_sports_display }}</span></h2>
+        {% if chips %}
+          <ul class="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {% for chip in chips %}
+              <li>
+                {% if chip.available %}
+                  <a href="{% url 'book_review' %}?court={{ court.pk }}&amp;start={{ chip.slot.start|date:'Y-m-d\TH:i' }}"
+                     class="flex min-h-12 flex-col items-center justify-center rounded-lg border border-green-700 bg-white px-2 py-1 text-center hover:bg-green-50">
+                    <span class="text-sm font-semibold">{{ chip.slot.start|time12 }}</span>
+                    <span class="text-xs text-slate-600">{{ chip.slot.price_lkr|lkr }}{% if chip.slot.is_next_day %} · {% translate "next day" %}{% endif %}</span>
+                  </a>
+                {% else %}
+                  <span class="flex min-h-12 flex-col items-center justify-center rounded-lg bg-slate-100 px-2 py-1 text-center text-slate-500">
+                    <span class="text-sm line-through">{{ chip.slot.start|time12 }}</span>
+                    <span class="text-xs">{% translate "Unavailable" %}</span>
+                  </span>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-sm text-slate-600">{% translate "No more times today." %}</p>
+        {% endif %}
+      </section>
+    {% empty %}
+      <p class="text-slate-600">{% translate "No courts to book yet." %}</p>
+    {% endfor %}
+  </div>
+{% endif %}

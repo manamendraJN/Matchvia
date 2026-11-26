@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load i18n matchvia %}
+
+{% block title %}{{ venue.name }} · Matchvia{% endblock %}
+
+{% block content %}
+  <article class="space-y-5">
+    {% if venue.cover_photo %}
+      <img src="{{ venue.cover_photo.url }}" alt="" class="-mx-4 -mt-6 aspect-[16/9] w-[calc(100%+2rem)] max-w-none object-cover">
+    {% endif %}
+
+    <header class="space-y-1">
+      <h1 class="text-2xl font-bold tracking-tight">{{ venue.name }}</h1>
+      <p class="text-slate-600">{{ venue.area }}{% if venue.address %} · {{ venue.address }}{% endif %}</p>
+    </header>
+
+    <div class="grid grid-cols-2 gap-3">
+      <a href="tel:{{ venue.phone }}" class="rounded-lg border border-slate-300 bg-white px-4 py-3 text-center font-semibold">{% translate "Call" %}</a>
+      {% if directions_url %}
+        <a href="{{ directions_url }}" rel="noopener" target="_blank" class="rounded-lg border border-slate-300 bg-white px-4 py-3 text-center font-semibold">{% translate "Directions" %}</a>
+      {% endif %}
+    </div>
+
+    {% if view.state == "not_public" %}
+      <p class="rounded-lg bg-amber-50 px-4 py-3 text-amber-900">{% translate "This venue isn't taking online bookings yet. Call them to book." %}</p>
+    {% else %}
+      <nav class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1" aria-label="{% translate 'Choose a day' %}">
+        {% for iso, label in days %}
+          <a href="?date={{ iso }}" hx-get="?date={{ iso }}" hx-target="#venue-day" hx-push-url="true"
+             class="flex min-h-12 shrink-0 items-center rounded-full border px-4 text-sm font-medium {% if iso == day.isoformat %}border-green-700 bg-green-700 text-white{% else %}border-slate-300 bg-white{% endif %}">{{ label }}</a>
+        {% endfor %}
+      </nav>
+      <div id="venue-day">{% include "bookings/_venue_day.html" %}</div>
+    {% endif %}
+
+    <details class="rounded-xl border border-slate-200 bg-white p-4">
+      <summary class="cursor-pointer font-semibold">{% translate "Cancellation and facilities" %}</summary>
+      <div class="mt-3 space-y-2 text-sm text-slate-700">
+        <p>{% blocktranslate with n=venue.settings.cancellation_window_hours %}Free cancellation up to {{ n }} hours before the start. Pay at the venue.{% endblocktranslate %}</p>
+        {% if facilities %}<p>{{ facilities|join:" · " }}</p>{% endif %}
+        {% if venue.description %}<p>{{ venue.description|linebreaksbr }}</p>{% endif %}
+      </div>
+    </details>
+
+    {% if photos %}
+      <details class="rounded-xl border border-slate-200 bg-white p-4">
+        <summary class="cursor-pointer font-semibold">{% translate "Photos" %}</summary>
+        <div class="mt-3 grid grid-cols-2 gap-2">
+          {% for photo in photos %}<img src="{{ photo.image.url }}" alt="" loading="lazy" class="aspect-[4/3] w-full rounded-lg object-cover">{% endfor %}
+        </div>
+      </details>
+    {% endif %}
+  </article>
+{% endblock %}

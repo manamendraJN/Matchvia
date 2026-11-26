@@ -1,0 +1,46 @@
+{% load i18n %}
+{# Search filters (P1). Radio chips are styled through the hidden input's checked state. #}
+<form method="get" action="{% url 'search' %}" class="space-y-5" {% if live %}hx-get="{% url 'search' %}" hx-trigger="change" hx-target="#results" hx-push-url="true"{% endif %}>
+  <fieldset class="space-y-2">
+    <legend class="text-sm font-medium text-slate-700">{% translate "Sport" %}</legend>
+    <div class="grid grid-cols-2 gap-2">
+      {% for radio in form.sport %}
+        <label class="flex min-h-12 cursor-pointer items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-3 text-center font-semibold has-checked:border-green-700 has-checked:bg-green-700 has-checked:text-white">
+          {{ radio.tag }}{{ radio.choice_label }}
+        </label>
+      {% endfor %}
+    </div>
+  </fieldset>
+
+  <div class="space-y-1">
+    <label for="{{ form.area.id_for_label }}" class="block text-sm font-medium text-slate-700">{{ form.area.label }}</label>
+    {{ form.area }}
+    {% for error in form.area.errors %}<p class="text-sm text-red-700">{{ error }}</p>{% endfor %}
+  </div>
+
+  <fieldset class="space-y-2">
+    <legend class="text-sm font-medium text-slate-700">{% translate "Day" %}</legend>
+    <div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+      {% for radio in form.date %}
+        <label class="flex min-h-12 shrink-0 cursor-pointer items-center rounded-full border border-slate-300 bg-white px-4 text-sm font-medium has-checked:border-green-700 has-checked:bg-green-700 has-checked:text-white">
+          {{ radio.tag }}{{ radio.choice_label }}
+        </label>
+      {% endfor %}
+    </div>
+  </fieldset>
+
+  <fieldset class="space-y-2">
+    <legend class="text-sm font-medium text-slate-700">{% translate "Time" %}</legend>
+    <div class="flex flex-wrap gap-2">
+      {% for radio in form.time %}
+        <label class="flex min-h-12 cursor-pointer items-center rounded-full border border-slate-300 bg-white px-4 text-sm font-medium has-checked:border-green-700 has-checked:bg-green-700 has-checked:text-white">
+          {{ radio.tag }}{{ radio.choice_label }}
+        </label>
+      {% endfor %}
+    </div>
+  </fieldset>
+
+  <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white hover:bg-green-800">
+    {% translate "Find a court" %}
+  </button>
+</form>

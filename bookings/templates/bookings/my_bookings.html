@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load i18n matchvia %}
+
+{% block title %}{% translate "My bookings" %} · Matchvia{% endblock %}
+
+{% block content %}
+  <section class="space-y-5">
+    <h1 class="text-2xl font-bold tracking-tight">{% translate "My bookings" %}</h1>
+
+    <nav class="grid grid-cols-2 rounded-lg bg-slate-100 p-1 text-center text-sm font-semibold">
+      <a href="{% url 'my_bookings' %}" class="rounded-md py-2 {% if tab == 'upcoming' %}bg-white shadow{% else %}text-slate-600{% endif %}">{% translate "Upcoming" %}</a>
+      <a href="{% url 'my_bookings' %}?tab=past" class="rounded-md py-2 {% if tab == 'past' %}bg-white shadow{% else %}text-slate-600{% endif %}">{% translate "Past" %}</a>
+    </nav>
+
+    {% if bookings %}
+      <ul class="space-y-3">
+        {% for booking in bookings %}
+          <li>
+            <a href="{% url 'booking_detail' booking.display_reference %}" class="block rounded-xl border border-slate-200 bg-white p-4 hover:bg-slate-50">
+              <span class="flex items-start justify-between gap-2">
+                <span class="text-lg font-semibold">{{ booking.start_at|day }}, {{ booking.start_at|time12 }}</span>
+                <span class="shrink-0 rounded-full px-2 py-1 text-xs font-medium {% if booking.status == 'confirmed' %}bg-green-100 text-green-800{% elif booking.status == 'no_show' %}bg-red-100 text-red-800{% else %}bg-slate-100 text-slate-700{% endif %}">
+                  {% if booking.is_completed %}{% translate "Played" %}{% else %}{{ booking.get_status_display }}{% endif %}
+                </span>
+              </span>
+              <span class="block text-sm text-slate-600">{{ booking.venue.name }} · {{ booking.court.name }}</span>
+              {% if booking.source != "online" %}<span class="block text-xs text-slate-500">{% blocktranslate with source=booking.get_source_display %}Booked by {{ source }}{% endblocktranslate %}</span>{% endif %}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% elif tab == "upcoming" %}
+      <div class="space-y-3 rounded-xl border border-dashed border-slate-300 p-6 text-center">
+        <p>{% translate "No upcoming games." %}</p>
+        <a href="{% url 'home' %}" class="inline-block rounded-lg bg-green-700 px-4 py-3 font-semibold text-white">{% translate "Find a court" %}</a>
+      </div>
+    {% else %}
+      <p class="text-slate-600">{% translate "Your past games will show here." %}</p>
+    {% endif %}
+  </section>
+{% endblock %}

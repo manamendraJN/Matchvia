@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "Cancel booking" %} · Matchvia{% endblock %}
+
+{% block content %}
+  <section class="space-y-5">
+    <h1 class="text-2xl font-bold tracking-tight">{% blocktranslate with venue=booking.venue.name %}Cancel {{ when }} at {{ venue }}?{% endblocktranslate %}</h1>
+    <p class="text-slate-600">{% translate "The court will be offered to others." %}</p>
+    <form method="post" action="{% url 'booking_cancel' booking.display_reference %}" class="space-y-3">
+      {% csrf_token %}
+      <button type="submit" class="w-full rounded-lg bg-red-700 px-4 py-3 text-lg font-semibold text-white hover:bg-red-800" data-disable-on-submit>{% translate "Yes, cancel booking" %}</button>
+      <a href="{% url 'booking_detail' booking.display_reference %}" class="block rounded-lg border border-slate-300 bg-white px-4 py-3 text-center font-semibold">{% translate "Keep booking" %}</a>
+    </form>
+  </section>
+{% endblock %}

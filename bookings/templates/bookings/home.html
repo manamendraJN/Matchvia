@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load i18n matchvia %}
+
+{% block content %}
+  <section class="space-y-6">
+    <h1 class="text-3xl font-bold leading-tight tracking-tight">
+      {% translate "Book your court." %}<br>
+      <span class="text-green-700">{% translate "Bring your team." %}</span>
+    </h1>
+
+    {% if next_game %}
+      <a href="{% url 'booking_detail' next_game.display_reference %}" class="block rounded-xl border border-green-200 bg-green-50 p-4">
+        <span class="block text-sm text-green-800">{% translate "Next game" %}</span>
+        <span class="block font-semibold">{{ next_game.start_at|day }}, {{ next_game.start_at|time12 }} · {{ next_game.venue.name }}</span>
+      </a>
+    {% endif %}
+
+    {% include "bookings/_search_form.html" %}
+  </section>
+{% endblock %}

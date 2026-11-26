@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load i18n matchvia %}
+
+{% block title %}{% translate "Review booking" %} · Matchvia{% endblock %}
+
+{% block content %}
+  <section class="space-y-5">
+    <a href="{{ back_url }}" class="text-sm text-slate-600 hover:underline">← {% translate "Back to times" %}</a>
+    <h1 class="text-2xl font-bold tracking-tight">{% translate "Review booking" %}</h1>
+
+    <div class="space-y-1 rounded-xl border border-slate-200 bg-white p-4">
+      <p class="font-semibold">{{ venue.name }} · {{ court.name }}</p>
+      <p class="text-lg">{{ when }}</p>
+    </div>
+
+    {% if options|length > 1 %}
+      <fieldset class="space-y-2">
+        <legend class="text-sm font-medium text-slate-700">{% translate "How long?" %}</legend>
+        <div class="grid grid-cols-3 gap-2">
+          {% for option in options %}
+            <a href="{{ option.url }}" class="flex min-h-12 flex-col items-center justify-center rounded-lg border px-2 py-2 text-center {% if option.slots == slots %}border-green-700 bg-green-700 text-white{% else %}border-slate-300 bg-white{% endif %}">
+              <span class="font-semibold">{% blocktranslate with m=option.minutes %}{{ m }} min{% endblocktranslate %}</span>
+              <span class="text-xs">{{ option.total|lkr }}</span>
+            </a>
+          {% endfor %}
+        </div>
+        <p class="text-sm text-slate-500">{% blocktranslate with n=venue.settings.max_slots_per_booking %}Up to {{ n }} slots online. Call the venue for longer.{% endblocktranslate %}</p>
+      </fieldset>
+    {% endif %}
+
+    <div class="space-y-2 rounded-xl border border-slate-200 bg-white p-4">
+      {% for slot in breakdown %}
+        <p class="flex justify-between text-sm"><span>{{ slot.start|time12 }}{% if slot.is_peak %} · {% translate "peak" %}{% endif %}</span><span>{{ slot.price_lkr|lkr }}</span></p>
+      {% endfor %}
+      <p class="flex justify-between border-t border-slate-200 pt-2 text-lg font-bold"><span>{% translate "Total" %}</span><span>{{ total|lkr }}</span></p>
+      <p class="text-sm font-medium text-green-800">{% translate "Pay at the venue" %}</p>
+    </div>
+
+    <p class="text-sm text-slate-600">
+      {% blocktranslate with day=deadline|day time=deadline|time12 %}Free cancellation until {{ day }}, {{ time }}. After that, call the venue.{% endblocktranslate %}
+    </p>
+
+    <form method="post" action="{% url 'book_confirm' %}">
+      {% csrf_token %}
+      {{ form.court }}{{ form.start }}<input type="hidden" name="slots" value="{{ slots }}">
+      <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white hover:bg-green-800" data-disable-on-submit>
+        {% translate "Confirm booking" %}
+      </button>
+    </form>
+  </section>
+{% endblock %}
