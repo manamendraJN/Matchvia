@@ -221,3 +221,25 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- Matchvia project additions ---
+# Environment files (secrets stay out of Git; keep a committed example)
+.env.*
+!.env.example
+
+# Django user uploads and collected static files
+media/
+staticfiles/
+
+# Tailwind / front-end build tooling
+node_modules/
+static/dist/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude Code local settings
+.claude/settings.local.json
