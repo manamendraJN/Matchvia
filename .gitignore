@@ -234,6 +234,10 @@ staticfiles/
 # Tailwind / front-end build tooling
 node_modules/
 static/dist/
+# Pinned standalone Tailwind CLI, downloaded and checksum-verified by scripts/tailwind.py
+.tools/
+# Built by scripts/tailwind.py locally, in CI and in the Docker image
+static/css/app.css
 
 # Editors and OS
 .vscode/
