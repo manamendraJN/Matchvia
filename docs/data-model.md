@@ -364,8 +364,8 @@ booked online, by phone or by WhatsApp.
 | operating_date | DateField | Local operating day of `start_at` (section 1.2). Set by the service |
 | venue_customer | FK VenueCustomer, PROTECT, null | Null for blocks and for walk-ins without a phone |
 | customer_name | CharField(80), blank | Snapshot shown on the calendar (walk-ins without phone use only this) |
-| team | FK Team, SET_NULL, null | US-C03 |
-| series | FK RecurringSeries, PROTECT, null | Weekly series this booking belongs to |
+| team | FK Team, SET_NULL, null | US-C03. Added with the teams app (C8) |
+| series | FK RecurringSeries, PROTECT, null | Weekly series this booking belongs to. Added with recurring series (C8) |
 | price_lkr | PositiveInteger, default 0 | Stored at booking time (US-P04). 0 for blocks |
 | price_change_reason | CharField(255), blank | Required when staff change the calculated price (BR-19) |
 | block_reason | CharField: `maintenance`, `private_event`, `coaching`, `closed`, `other`, blank | **CK**. Only for blocks |
@@ -407,6 +407,8 @@ booked online, by phone or by WhatsApp.
 | `(venue_customer_id, start_at)` | Customer history, no-show counts, "My bookings" |
 | `(series_id)` | Series cancellation |
 | Partial `(hold_expires_at)` where `status = 'held'` | Hold expiry job (Phase 2) |
+
+Also in the database: **CK** that `kind`, `status`, `source`, `block_reason` and `cancel_reason` hold known values. The reference's unique constraint is named `booking_reference_unique` so the service can tell a reference collision (retry with a new code) from an overlap (`booking_no_overlap` → "slot just taken").
 
 **Status transitions** (enforced in `bookings/services.py`; the constraints above keep the end
 states valid):

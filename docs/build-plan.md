@@ -76,12 +76,12 @@ changed) before the step that needs it.
 
 - [x] **S04** Venue, court, hours and settings models · 2 d
 - [x] **S05** Venue permissions and isolation test framework · 2 d
-- [ ] **S06** Booking table and the no-double-booking constraint · 2.5 d
-- [ ] **S07** Free-slot engine and pricing · 2.5 d
+- [x] **S06** Booking table and the no-double-booking constraint · 2.5 d
+- [x] **S07** Free-slot engine and pricing · 2.5 d
 - [ ] **S08** SMS outbox, worker and gateway adapter · 2 d
 - [ ] **S09** Front-end foundation (layout, Tailwind, HTMX, CSP, components, i18n) · 2 d
 - [ ] **S10** Phone OTP sign-in · 3 d
-- [ ] **S11** Booking services (online, staff, cancel, move, no-show) · 3 d
+- [x] **S11** Booking services (online, staff, cancel, move, no-show) · 3 d
 - [ ] **S12** Staging environment and deploy pipeline · 2 d
 
 ### Milestone 2: Demo slice (about 13 days)
@@ -633,4 +633,7 @@ security.
 | S05 | 26 Nov 2026 | 26 Nov 2026 | | Prompt C3: `get_venue_for_user()`, venue decorators, isolation tests for every `/manage/` URL plus the meta-test (proved by a test that adds an unregistered URL) |
 | S07 (part) | 26 Nov 2026 | | | Prompt C3: `pricing.services.price_for()` and `slot_prices()`. Free-slot engine comes with C4 |
 | S21/S24 (part) | 26 Nov 2026 | | | Prompt C3: create venue, profile, photos (Pillow re-encode, 5 MB, 6 max), courts, hours, prices and peak times, submit for approval; staff see them read-only. Wizard flow, Leaflet map pin, object storage (D7), booking-rules screen (V20) and staff screen (V24) still to do |
+| S06 | 26 Nov 2026 | 26 Nov 2026 | | Prompt C4: `Booking` (bookings and blocks), `BookingEvent`, exclusion constraint, all check constraints, composite foreign keys (RunSQL), references, 20-thread concurrency test. `RecurringSeries` and the team/series foreign keys move to C8 |
+| S07 | 26 Nov 2026 | 26 Nov 2026 | | Prompt C4: `bookings.selectors.get_available_slots()` (grid, late-night days, booked/blocked removed, notice, horizon, prices). The multi-court batch version for search comes with C5 |
+| S11 | 26 Nov 2026 | 26 Nov 2026 | | Prompt C4: online and staff bookings, player and staff cancel, blocks, move, no-show and undo, audit events, confirmation/cancellation/change SMS. Reminders come with C7; booking rate limit (10/hour) with the C5 views |
 | S25 (part) | 26 Nov 2026 | | | Prompt C3: area admin, venue review page with approve/reject/suspend/unsuspend and owner SMS. Booking lookup and access log still to do (C9) |
