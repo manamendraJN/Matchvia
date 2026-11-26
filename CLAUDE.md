@@ -15,7 +15,7 @@ Tagline: "Book your court. Bring your team." Owners: two co-founders. Business d
 
 ## Non-negotiable rules
 1. NO DOUBLE BOOKINGS: enforced by a PostgreSQL ExclusionConstraint on bookings
-   (court + time range overlap, ignoring cancelled/expired). Never rely only on app checks.
+   (court + time range overlap, ignoring cancelled/expired/no_show). Never rely only on app checks.
 2. Multi-tenant security: a venue owner/staff can only ever read or change their own venue's data.
    Every queryset for venue data must be filtered by the user's venue. Add tests for this.
 3. Security defaults on: CSRF, autoescaping, HTTPS settings, secure cookies, HSTS, CSP,
