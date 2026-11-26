@@ -1,0 +1,90 @@
+# Runs on every push and pull request (architecture 8.2). Build and deploy jobs follow in S12.
+# Actions are pinned to commit SHAs (architecture 5 A08); Dependabot keeps them current.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: matchvia
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: matchvia
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U matchvia"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Dummy values for CI only; none of these is a real secret.
+      DJANGO_SETTINGS_MODULE: config.settings.test
+      SECRET_KEY: ci-only-secret-key-not-used-anywhere-else-0123456789
+      OTP_HMAC_KEY: ci-only-otp-hmac-key-not-used-anywhere-else-0123456789
+      DATABASE_URL: postgres://matchvia:ci-only-password@localhost:5432/matchvia
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # full history for the secret scan
+          persist-credentials: false
+
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          enable-cache: true
+
+      - name: Install dependencies (locked)
+        run: uv sync --frozen
+
+      - name: Lint and format
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: No missing migrations
+        run: uv run python manage.py makemigrations --check --dry-run
+
+      - name: Deployment checks against production settings
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.prod
+          SMS_BACKEND: notifications.backends.textlk.TextLkBackend
+          ALLOWED_HOSTS: matchvia.lk
+          CSRF_TRUSTED_ORIGINS: https://matchvia.lk
+          ADMIN_URL_PATH: ops-ci-check/
+          DATABASE_URL: postgres://matchvia:ci-only-password@localhost:5432/matchvia?sslmode=disable
+        run: uv run python manage.py check --deploy --fail-level WARNING
+
+      - name: Dependency audit (pip-audit)
+        run: |
+          uv export --frozen --no-emit-project --format requirements-txt -o "$RUNNER_TEMP/requirements.txt"
+          uv run pip-audit --strict --disable-pip -r "$RUNNER_TEMP/requirements.txt"
+
+      - name: Static security analysis (bandit)
+        run: uv run bandit -c pyproject.toml -r . -q
+
+      - name: Build Tailwind CSS
+        run: uv run python scripts/tailwind.py build
+
+      - name: Tests with coverage (PostgreSQL)
+        run: uv run pytest --cov --cov-report=term
