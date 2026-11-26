@@ -178,9 +178,10 @@ in. Signing in is asked for only when it's needed (booking, teams, account).
   day strip; per court: name, sports, time chips with price (peak price shown on the chip),
   "Unavailable" chips for booked/blocked times; collapsible sections for facilities, cancellation
   policy ("Free cancellation up to 6 hours before"), photos, map (tap to load).
-- **Actions:** tap a free chip to select; tap the next chip to extend (up to the venue's limit, BR-02;
-  further chips become disabled with "Max 3 hours online. Call the venue for longer."); sticky bar
-  shows court, time, total and **Continue** → P7 (or P4 first if signed out).
+- **Actions:** tap a free chip → P7 (or P4 first if signed out), where the player chooses how long
+  (1, 2 or 3 slots, only lengths that are free and within the venue's limit, BR-02; "Up to 3 slots
+  online. Call the venue for longer."). *Changed in C5: choosing the length on P7 replaces
+  tap-to-extend on P3, so the flow works without JavaScript on budget phones.*
 - **Empty / error:** no free slots that day → "Fully booked on Saturday" + next day with free slots;
   date beyond horizon → "Online booking opens 14 days ahead"; venue closed → "Closed on this day";
   venue not approved or suspended → "This venue isn't
@@ -774,8 +775,8 @@ scanned the QR poster).
 |---|---|---|---|
 | 1 | P3 Venue page | Opens the link. Sees today's free times | Page loads with the cover photo and today's slots; map not loaded (saves data) |
 | 2 | P3 | Taps **Sat 5** in the day strip | HTMX swaps in Saturday's slots |
-| 3 | P3 | Taps **7:00 pm** on Court 1, then **8:00 pm** to make it 2 hours | Sticky bar: "Court 1 · 7–9 pm · Rs. 7,000" |
-| 4 | P3 | Taps **Continue** | Not signed in → P4, remembering the selection |
+| 3 | P3 | Taps **7:00 pm** on Court 1 | Not signed in → P4, remembering the selection |
+| 4 | P7 (after sign-in) | Taps **120 min** | Review shows "7:00 pm–9:00 pm · Rs. 7,000" |
 | 5 | P4 Phone | Types 0771234567, taps **Send code** | Normalises the number, bot check (invisible), queues the OTP SMS |
 | 6 | P5 Code | Android offers the code from the SMS, or the player types it | Auto-submits at 6 digits, signs in |
 | 7 | P6 Profile | Types name, ticks the agreement box, taps **Continue** | Records consent; returns to the remembered slot |
@@ -789,7 +790,7 @@ scanned the QR poster).
 
 | Where | Problem | What the player sees |
 |---|---|---|
-| 3 | Wants 4 hours | Chips beyond 3 hours disabled: "Max 3 hours online. Call the venue for longer." + Call |
+| 4 | Wants 4 hours | Only 60/120/180 min offered: "Up to 3 slots online. Call the venue for longer." |
 | 5 | Typed a landline or a foreign number | "Enter a Sri Lankan mobile number, like 077 123 4567" |
 | 6 | SMS is slow | Countdown, then "Didn't get it? Check the number or resend." |
 | 6 | Wrong code | "Wrong code. 4 tries left." |
