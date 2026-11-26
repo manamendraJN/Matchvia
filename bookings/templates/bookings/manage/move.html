@@ -1,0 +1,53 @@
+{% extends "venues/_layout.html" %}
+{% load i18n %}
+
+{% block staff_note %}{% endblock %}
+
+{% block venue_content %}
+  <h2 class="text-lg font-semibold">{% translate "Move booking" %}</h2>
+  <p class="text-slate-700">{{ booking.customer_name }} · {{ when }} · {{ booking.court.name }}</p>
+
+  <form method="get" class="grid grid-cols-2 items-end gap-3">
+    <div class="space-y-1">
+      <label for="move-court" class="text-sm text-slate-600">{% translate "Court" %}</label>
+      <select id="move-court" name="court" class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-3">
+        {% for c in courts %}<option value="{{ c.pk }}" {% if c.pk == court.pk %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="space-y-1">
+      <label for="move-date" class="text-sm text-slate-600">{% translate "Date" %}</label>
+      <input id="move-date" type="date" name="date" value="{{ day.isoformat }}" class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-3">
+    </div>
+    <button type="submit" class="col-span-2 rounded-lg border border-slate-300 bg-white px-4 py-3 font-semibold">{% translate "Show free times" %}</button>
+  </form>
+
+  <form method="post" class="space-y-4" novalidate>
+    {% csrf_token %}
+    {% include "components/form_errors.html" %}
+    {% if outside_hours %}
+      <div class="space-y-2 rounded-lg bg-amber-50 px-4 py-3 text-amber-900" role="alert">
+        <p>{% translate "This is outside your opening hours." %}</p>
+        <button type="submit" name="save_anyway" value="1" class="rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white">{% translate "Move anyway" %}</button>
+      </div>
+    {% endif %}
+    <input type="hidden" name="court" value="{{ court.pk }}">
+    <input type="hidden" name="date" value="{{ day.isoformat }}">
+    {% if starts %}
+      <fieldset class="space-y-2">
+        <legend class="text-sm font-medium text-slate-700">{% translate "New start time" %}</legend>
+        <div class="grid grid-cols-3 gap-2">
+          {% for start, minute, label in starts %}
+            <label class="flex min-h-12 cursor-pointer items-center justify-center rounded-lg border border-green-700 bg-white text-sm font-semibold has-checked:bg-green-700 has-checked:text-white">
+              <input type="radio" name="start_minute" value="{{ minute }}" class="peer sr-only" required>{{ label }}
+            </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+      <label class="flex items-center gap-2 text-sm">{{ form.keep_price }} {{ form.keep_price.label }}</label>
+      {% include "components/field.html" with field=form.price_change_reason %}
+      <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white" data-disable-on-submit>{% translate "Move booking" %}</button>
+    {% else %}
+      <p class="rounded-lg bg-slate-100 px-4 py-3">{% blocktranslate with court=court.name %}No free times on {{ court }} that day.{% endblocktranslate %}</p>
+    {% endif %}
+  </form>
+{% endblock %}

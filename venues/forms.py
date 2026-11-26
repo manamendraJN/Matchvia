@@ -237,3 +237,17 @@ class PeakPeriodForm(forms.Form):
 
 DayHoursFormSet = formset_factory(DayHoursForm, extra=0, min_num=7, max_num=7, validate_max=True)
 PeakPeriodFormSet = formset_factory(PeakPeriodForm, extra=1, can_delete=True, max_num=30)
+
+
+class StaffForm(_PhoneMixin, forms.Form):
+    """V24: add an owner or staff member by name and mobile number (US-O06)."""
+
+    name = forms.CharField(label=_("Name"), max_length=80, widget=_text())
+    phone = forms.CharField(label=_("Mobile number"), max_length=32, widget=_text(inputmode="tel"))
+    role = forms.ChoiceField(
+        label=_("Role"),
+        choices=[("staff", _("Staff")), ("owner", _("Owner"))],
+        initial="staff",
+        widget=forms.Select(attrs={"class": SELECT_CLASS}),
+        help_text=_("Staff take bookings. Owners can also change settings, prices and staff."),
+    )

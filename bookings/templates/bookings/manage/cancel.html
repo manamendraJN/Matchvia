@@ -1,0 +1,32 @@
+{% extends "venues/_layout.html" %}
+{% load i18n %}
+
+{% block staff_note %}{% endblock %}
+
+{% block venue_content %}
+  <h2 class="text-lg font-semibold">{% translate "Cancel booking" %}</h2>
+  <p class="text-slate-700">{{ booking.customer_name }} · {{ when }} · {{ booking.court.name }}</p>
+  <form method="post" class="space-y-4" novalidate>
+    {% csrf_token %}
+    {% include "components/form_errors.html" %}
+    <fieldset class="space-y-2">
+      <legend class="text-sm font-medium text-slate-700">{% translate "Why?" %}</legend>
+      <div class="grid gap-2">
+        {% for radio in form.reason %}
+          <label class="flex min-h-12 cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-4 font-medium has-checked:border-red-700 has-checked:bg-red-50">
+            {{ radio.tag }}{{ radio.choice_label }}
+          </label>
+        {% endfor %}
+      </div>
+      {% for error in form.reason.errors %}<p class="text-sm text-red-700">{{ error }}</p>{% endfor %}
+    </fieldset>
+    {% if inside_window %}
+      <p class="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">{% translate "If the customer asked, this will be recorded as a late cancellation." %}</p>
+    {% endif %}
+    {% if booking.venue_customer and booking.venue_customer.phone %}
+      <p class="text-sm text-slate-600">{% translate "The customer gets an SMS." %}</p>
+    {% endif %}
+    <button type="submit" class="w-full rounded-lg bg-red-700 px-4 py-3 text-lg font-semibold text-white" data-disable-on-submit>{% translate "Cancel booking" %}</button>
+    <a href="{% url 'manage:booking_detail' venue.pk booking.pk %}" class="block text-center text-sm text-slate-600 hover:underline">{% translate "Keep booking" %}</a>
+  </form>
+{% endblock %}

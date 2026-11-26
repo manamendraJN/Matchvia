@@ -72,7 +72,13 @@ def test_dashboard_shows_status_banner_and_missing_items(owner_client, venue):
     response = owner_client.get(url("dashboard", venue))
     assert b"Not live yet" in response.content
     assert b"Add at least one court" in response.content
-    assert b"disabled" in response.content  # submit button disabled until ready
+    assert b"Submit for approval" not in response.content  # only offered once nothing is missing
+
+
+def test_ready_venue_offers_submit_on_the_calendar(client):
+    venue = ready_venue()
+    client.force_login(venue.memberships.get().user)
+    assert b"Submit for approval" in client.get(url("dashboard", venue)).content
 
 
 def test_save_profile(owner_client, venue):

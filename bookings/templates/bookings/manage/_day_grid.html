@@ -1,0 +1,52 @@
+{% load i18n matchvia %}
+{# Day grid (V8). Refreshes itself every 30 s so new online bookings appear (D17). #}
+<div id="day-grid"
+     hx-get="{% url 'manage:dashboard' venue.pk %}?date={{ day.isoformat }}{% if show_cancelled %}&amp;cancelled=1{% endif %}"
+     hx-trigger="every 30s" hx-swap="outerHTML">
+  <p class="mb-3 text-sm text-slate-700">
+    {% blocktranslate count n=cal.summary.bookings %}{{ n }} booking{% plural %}{{ n }} bookings{% endblocktranslate %}
+    · {% blocktranslate with amount=cal.summary.expected_lkr|lkr %}{{ amount }} expected{% endblocktranslate %}
+    · {% blocktranslate count n=cal.summary.free_peak_slots %}{{ n }} peak slot free{% plural %}{{ n }} peak slots free{% endblocktranslate %}
+  </p>
+
+  {% if not cal.courts %}
+    <p class="rounded-lg bg-slate-100 px-4 py-3">
+      {% if can_edit %}<a href="{% url 'manage:court_create' venue.pk %}" class="font-semibold underline">{% translate "Add your courts first" %}</a>{% else %}{% translate "Ask the owner to add courts." %}{% endif %}
+    </p>
+  {% else %}
+    {% if cal.closed %}
+      <p class="mb-3 rounded-lg bg-slate-200 px-4 py-3 font-medium text-slate-800">{% translate "Closed on this day." %}</p>
+    {% endif %}
+    <div class="-mx-4 overflow-x-auto px-4">
+      <table class="w-full min-w-max border-separate border-spacing-1 text-sm">
+        <thead>
+          <tr>
+            <th class="sticky left-0 z-10 w-16 bg-slate-50"></th>
+            {% for court in cal.courts %}<th class="min-w-32 px-1 py-2 text-left font-semibold">{{ court.name }}</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in cal.rows %}
+            <tr>
+              <th scope="row" class="sticky left-0 z-10 bg-slate-50 pr-1 text-right align-top text-xs font-normal {% if row.is_now %}text-red-600 font-semibold{% else %}text-slate-500{% endif %}">
+                {% if row.is_now %}<span class="sr-only">{% translate "Now" %}</span>{% endif %}{{ row.label }}
+              </th>
+              {% for cell in row.cells %}
+                {% if cell.kind == "booking" %}
+                  <td rowspan="{{ cell.rowspan }}" class="align-top">{% include "bookings/manage/_card.html" with b=cell.booking %}</td>
+                {% elif cell.kind == "free" %}
+                  <td class="align-top {% if row.is_now %}border-t-2 border-red-500{% endif %}">
+                    <a href="{% url 'manage:booking_new' venue.pk %}?{{ cell.query }}" class="flex min-h-12 items-center justify-center rounded-md border border-dashed border-green-600 text-xs text-green-700 hover:bg-green-50">+ {% translate "free" %}</a>
+                  </td>
+                {% elif cell.kind == "closed" %}
+                  <td class="min-h-12 rounded-md bg-slate-100"></td>
+                {% endif %}
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="mt-2 text-xs text-slate-500">{% translate "Tap a free time to add a booking." %}</p>
+  {% endif %}
+</div>

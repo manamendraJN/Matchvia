@@ -1,0 +1,84 @@
+{% extends "venues/_layout.html" %}
+{% load i18n matchvia %}
+
+{% block staff_note %}{% endblock %}
+
+{% block venue_content %}
+  <a href="{% url 'manage:dashboard' venue.pk %}?date={{ booking.operating_date.isoformat }}" class="text-sm text-slate-600 hover:underline">← {% translate "Calendar" %}</a>
+
+  <div class="space-y-1">
+    <h2 class="text-xl font-bold">{{ booking.customer_name|default:"—" }}</h2>
+    <p class="text-slate-700">{{ when }} · {{ booking.court.name }}</p>
+    <p class="text-sm">
+      <span class="rounded-full bg-slate-100 px-2 py-1 font-medium">{% if booking.is_completed %}{% translate "Played" %}{% else %}{{ booking.get_status_display }}{% endif %}</span>
+      <span class="ml-1 text-slate-600">{{ booking.get_source_display }} · {{ booking.display_reference }}</span>
+      {% if booking.checked_in_at %}<span class="ml-1 font-medium text-green-800">✓ {% blocktranslate with t=booking.checked_in_at|time12 %}Arrived {{ t }}{% endblocktranslate %}</span>{% endif %}
+    </p>
+  </div>
+
+  {% if booking.venue_customer and booking.venue_customer.phone %}
+    <div class="grid grid-cols-2 gap-3">
+      <a href="tel:{{ booking.venue_customer.phone }}" class="rounded-lg border border-slate-300 bg-white px-4 py-3 text-center font-semibold">{% translate "Call" %} {{ booking.venue_customer.phone|local_phone }}</a>
+      <a href="https://wa.me/{{ booking.venue_customer.phone|slice:'1:' }}" rel="noopener" target="_blank" class="rounded-lg border border-slate-300 bg-white px-4 py-3 text-center font-semibold">WhatsApp</a>
+    </div>
+  {% endif %}
+
+  <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 rounded-xl border border-slate-200 bg-white p-4 text-sm">
+    <dt class="text-slate-500">{% translate "Price" %}</dt>
+    <dd>{{ booking.price_lkr|lkr }}{% if booking.price_change_reason %} · {% translate "changed:" %} {{ booking.price_change_reason }}{% endif %}</dd>
+    {% if booking.notes %}<dt class="text-slate-500">{% translate "Notes" %}</dt><dd>{{ booking.notes }}</dd>{% endif %}
+    {% if stats %}
+      <dt class="text-slate-500">{% translate "Customer" %}</dt>
+      <dd>
+        {% blocktranslate count n=stats.bookings %}{{ n }} booking{% plural %}{{ n }} bookings{% endblocktranslate %} ·
+        <span class="{% if stats.no_shows %}font-semibold text-red-700{% endif %}">{% blocktranslate count n=stats.no_shows %}{{ n }} no-show{% plural %}{{ n }} no-shows{% endblocktranslate %}</span> ·
+        {% blocktranslate count n=stats.late_cancellations %}{{ n }} late cancellation{% plural %}{{ n }} late cancellations{% endblocktranslate %}
+      </dd>
+    {% endif %}
+    {% if booking.status == "cancelled" %}
+      <dt class="text-slate-500">{% translate "Cancelled" %}</dt>
+      <dd>{{ booking.get_cancel_reason_display }}{% if booking.is_late_cancellation %} · {% translate "late" %}{% endif %}</dd>
+    {% endif %}
+  </dl>
+
+  <div class="grid gap-3">
+    {% if can_arrive %}
+      <form method="post" action="{% url 'manage:booking_arrived' venue.pk booking.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 font-semibold text-white">{% translate "Arrived ✓" %}</button>
+      </form>
+    {% endif %}
+    {% if is_future %}
+      <a href="{% url 'manage:booking_move' venue.pk booking.pk %}" class="rounded-lg border border-slate-300 bg-white px-4 py-3 text-center font-semibold">{% translate "Move" %}</a>
+    {% endif %}
+    {% if booking.status == "confirmed" %}
+      {% if can_no_show %}
+        <form method="post" action="{% url 'manage:booking_no_show' venue.pk booking.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="w-full rounded-lg border border-red-300 bg-white px-4 py-3 font-semibold text-red-700">{% translate "Mark no-show" %}</button>
+          <p class="mt-1 text-center text-xs text-slate-500">{% translate "The rest of this time becomes free for walk-ins." %}</p>
+        </form>
+      {% elif not booking.is_completed %}
+        <p class="text-center text-sm text-slate-500">{% blocktranslate with t=no_show_from|time12 %}No-show available from {{ t }}{% endblocktranslate %}</p>
+      {% endif %}
+    {% endif %}
+    {% if can_undo %}
+      <form method="post" action="{% url 'manage:booking_undo_no_show' venue.pk booking.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 font-semibold">{% translate "Undo no-show" %}</button>
+      </form>
+    {% endif %}
+    {% if is_future %}
+      <a href="{% url 'manage:booking_cancel' venue.pk booking.pk %}" class="text-center font-semibold text-red-700 hover:underline">{% translate "Cancel booking" %}</a>
+    {% endif %}
+  </div>
+
+  <details class="rounded-xl border border-slate-200 bg-white p-4">
+    <summary class="cursor-pointer font-semibold">{% translate "History" %}</summary>
+    <ul class="mt-3 space-y-1 text-sm text-slate-700">
+      {% for event in events %}
+        <li>{{ event.created_at|day }} {{ event.created_at|time12 }} · {{ event.get_action_display }}{% if event.actor %} · {{ event.actor.name }}{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </details>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "venues/_layout.html" %}
+{% load i18n %}
+
+{% block staff_note %}{% endblock %}
+
+{% block venue_content %}
+  <a href="{% url 'manage:dashboard' venue.pk %}?date={{ booking.operating_date.isoformat }}" class="text-sm text-slate-600 hover:underline">← {% translate "Calendar" %}</a>
+  <div class="space-y-1">
+    <h2 class="text-xl font-bold">{% translate "Blocked" %}: {{ booking.get_block_reason_display }}</h2>
+    <p class="text-slate-700">{{ when }} · {{ booking.court.name }}</p>
+    {% if booking.notes %}<p class="text-sm text-slate-600">{{ booking.notes }}</p>{% endif %}
+    {% if booking.status == "cancelled" %}<p class="text-sm font-medium">{% translate "Removed" %}</p>{% endif %}
+  </div>
+  {% if booking.status == "confirmed" %}
+    <form method="post" action="{% url 'manage:block_remove' venue.pk booking.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 font-semibold">{% translate "Remove block" %}</button>
+    </form>
+  {% endif %}
+{% endblock %}

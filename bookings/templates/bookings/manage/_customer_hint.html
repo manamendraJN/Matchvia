@@ -1,0 +1,9 @@
+{% load i18n %}
+{% if customer %}
+  <p class="mt-1 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-800">
+    {{ customer.name }} ·
+    {% blocktranslate count n=stats.bookings %}{{ n }} booking{% plural %}{{ n }} bookings{% endblocktranslate %} ·
+    <span class="{% if stats.no_shows %}font-semibold text-red-700{% endif %}">{% blocktranslate count n=stats.no_shows %}{{ n }} no-show{% plural %}{{ n }} no-shows{% endblocktranslate %}</span>
+    {% if customer.is_blocked_online %} · <span class="font-semibold">{% translate "Blocked from online booking" %}</span>{% endif %}
+  </p>
+{% endif %}

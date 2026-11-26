@@ -4,10 +4,16 @@ For every venue-side URL: the owner and the staff of venue A use venue B's ids a
 nothing about venue B changes. A meta-test fails if a new venue URL is not registered here.
 """
 
+from datetime import timedelta
+
 import pytest
 from django.urls import URLPattern, reverse
+from django.utils import timezone
 
 from accounts.tests.factories import UserFactory
+from bookings import services as booking_services
+from bookings.models import Booking
+from core.timeutils import at_operating_minute, operating_date
 from venues import services, urls
 from venues.models import Court, OpeningHours, Venue, VenuePhoto
 
@@ -57,6 +63,35 @@ def _profile_data():
     return {"name": "Hacked", "area": str(area().pk), "phone": "0711111111", "address": "x"}
 
 
+def _tomorrow():
+    return operating_date(timezone.now()) + timedelta(days=1)
+
+
+def _booking_data(target):
+    return {
+        "court": target.court.pk,
+        "date": _tomorrow().isoformat(),
+        "start_minute": "1200",
+        "slots": "1",
+        "source": "walk_in",
+        "customer_name": "Intruder",
+    }
+
+
+def _move_data(target):
+    return {"court": target.court.pk, "date": _tomorrow().isoformat(), "start_minute": "1260"}
+
+
+def _block_data(target):
+    return {
+        "courts": [target.court.pk],
+        "date": _tomorrow().isoformat(),
+        "start_minute": "360",
+        "end_minute": "420",
+        "reason": "maintenance",
+    }
+
+
 # URL name -> (extra URL kwargs for target venue T, POST data for target venue T).
 # Every URL under /manage/<venue_id>/ must be listed (see test_every_venue_url_is_registered).
 REGISTRY = {
@@ -73,12 +108,42 @@ REGISTRY = {
     "court_toggle": (lambda t: {"court_id": t.court.pk}, lambda t: {}),
     "hours": (lambda t: {}, lambda t: _hours_data()),
     "prices": (lambda t: {}, lambda t: _prices_data(t)),
+    # Calendar and bookings (C6)
+    "week": (lambda t: {}, lambda t: {}),
+    "booking_new": (lambda t: {}, _booking_data),
+    "booking_detail": (lambda t: {"booking_id": t.booking.pk}, lambda t: {}),
+    "booking_move": (lambda t: {"booking_id": t.booking.pk}, _move_data),
+    "booking_cancel": (lambda t: {"booking_id": t.booking.pk}, lambda t: {"reason": "other"}),
+    "booking_no_show": (lambda t: {"booking_id": t.booking.pk}, lambda t: {}),
+    "booking_undo_no_show": (lambda t: {"booking_id": t.booking.pk}, lambda t: {}),
+    "booking_arrived": (lambda t: {"booking_id": t.booking.pk}, lambda t: {}),
+    "block_new": (lambda t: {}, _block_data),
+    "block_remove": (lambda t: {"booking_id": t.block.pk}, lambda t: {}),
+    "customer_lookup": (lambda t: {}, lambda t: {"customer_phone": "0715551234"}),
+    "staff": (lambda t: {}, lambda t: {"name": "Mole", "phone": "0719998888", "role": "owner"}),
+    "staff_remove": (lambda t: {"membership_id": t.membership.pk}, lambda t: {}),
 }
-# Who may use each URL on their own venue: "members" (owner and staff can GET; only owners
-# POST) or "owner" (staff get 404 for every method). "all" = owner and staff, any method.
+# Who may use each URL on their own venue:
+#   "all"       owner and staff can open it (GET)
+#   "all_post"  owner and staff can do this action (POST only)
+#   "members"   owner and staff can look (GET); only owners can change (POST)
+#   "owner"     owner only: staff get 404 for every method
 ACCESS = {
     "dashboard": "all",
     "courts": "all",
+    "week": "all",
+    "booking_new": "all",
+    "booking_detail": "all",
+    "booking_move": "all",
+    "booking_cancel": "all",
+    "customer_lookup": "all",
+    "booking_no_show": "all_post",
+    "booking_undo_no_show": "all_post",
+    "booking_arrived": "all_post",
+    "block_new": "all",
+    "block_remove": "all_post",
+    "staff": "owner",
+    "staff_remove": "owner",
     "profile": "members",
     "hours": "members",
     "prices": "members",
@@ -130,7 +195,22 @@ def fingerprint(venue: Venue):
         ),
         list(venue.peak_periods.values_list("weekday", "starts_minute", "ends_minute")),
         list(VenuePhoto.objects.for_venue(venue).values_list("pk", "image")),
-        venue.memberships.count(),
+        list(venue.memberships.order_by("pk").values_list("pk", "user_id", "role")),
+        list(
+            Booking.objects.for_venue(venue)
+            .order_by("pk")
+            .values_list(
+                "pk",
+                "status",
+                "court_id",
+                "start_at",
+                "end_at",
+                "price_lkr",
+                "checked_in_at",
+                "no_show_marked_at",
+                "updated_at",
+            )
+        ),
     )
 
 
@@ -141,6 +221,7 @@ def venue_a():
     venue.staff = add_staff(venue)
     venue.court = make_court(venue)
     venue.photo = services.add_photo(venue, venue.owner, image_file())
+    _add_bookings(venue)
     return venue
 
 
@@ -150,7 +231,32 @@ def venue_b():
     venue.owner = venue.memberships.get().user
     venue.court = make_court(venue, name="Court B1")
     venue.photo = services.add_photo(venue, venue.owner, image_file())
+    _add_bookings(venue)
     return venue
+
+
+def _add_bookings(venue):
+    """A future phone booking and a block, so every booking URL has a real target."""
+    start = at_operating_minute(_tomorrow(), 1080)
+    venue.booking = booking_services.create_staff_booking(
+        venue=venue,
+        actor=venue.owner,
+        court_id=venue.court.pk,
+        start_at=start,
+        end_at=start + timedelta(hours=1),
+        source="phone",
+        customer_name="Customer",
+        customer_phone="0715551234",
+    )
+    (venue.block,) = booking_services.create_block(
+        venue=venue,
+        actor=venue.owner,
+        court_ids=[venue.court.pk],
+        start_at=at_operating_minute(_tomorrow(), 600),
+        end_at=at_operating_minute(_tomorrow(), 660),
+        reason="maintenance",
+    )
+    venue.membership = venue.memberships.get(user=venue.owner)
 
 
 @pytest.mark.parametrize("name", sorted(REGISTRY))
@@ -175,7 +281,19 @@ def urls_with_object_ids() -> set[str]:
     }
 
 
-OBJECT_URLS = ["court_edit", "court_toggle", "photo_remove"]
+OBJECT_URLS = [
+    "court_edit",
+    "court_toggle",
+    "photo_remove",
+    "booking_detail",
+    "booking_move",
+    "booking_cancel",
+    "booking_no_show",
+    "booking_undo_no_show",
+    "booking_arrived",
+    "block_remove",
+    "staff_remove",
+]
 
 
 def test_object_url_list_is_complete():
@@ -190,8 +308,9 @@ def test_other_venues_objects_not_found_through_own_venue(client, venue_a, venue
     url = reverse(f"manage:{name}", kwargs={"venue_id": venue_a.pk, **kwargs_for(venue_b)})
     before = fingerprint(venue_b)
 
+    # 404, or 405 for a method the page doesn't take: neither reveals or changes anything.
     assert client.get(url).status_code in (404, 405)
-    assert client.post(url, data_for(venue_b)).status_code == 404
+    assert client.post(url, data_for(venue_b)).status_code in (404, 405)
     assert fingerprint(venue_b) == before
 
 
@@ -285,6 +404,46 @@ def test_meta_test_catches_an_unregistered_url(monkeypatch):
 
     from venues import views
 
-    extra = path("<int:venue_id>/secret/", views.dashboard, name="secret")
+    extra = path("<int:venue_id>/secret/", views.profile, name="secret")
     monkeypatch.setattr(urls, "urlpatterns", [*urls.urlpatterns, extra])
     assert "secret" in venue_urls() - set(REGISTRY)
+
+
+@pytest.mark.parametrize("name", sorted(n for n, a in ACCESS.items() if a == "all_post"))
+def test_staff_can_do_shared_actions(client, venue_a, name):
+    client.force_login(venue_a.staff)
+    kwargs_for, data_for = REGISTRY[name]
+    url = reverse(f"manage:{name}", kwargs={"venue_id": venue_a.pk, **kwargs_for(venue_a)})
+    response = client.post(url, data_for(venue_a))
+    assert response.status_code == 302  # handled (success or a rule message), never 404
+
+
+def test_new_booking_form_cannot_use_another_venues_court(client, venue_a, venue_b):
+    """A tampered POST with venue B's court id is refused by the scoped form (data-model 6.2)."""
+    client.force_login(venue_a.owner)
+    before = fingerprint(venue_b)
+    response = client.post(reverse("manage:booking_new", args=[venue_a.pk]), _booking_data(venue_b))
+    assert response.status_code == 200
+    assert "Select a valid choice" in response.content.decode()
+    assert fingerprint(venue_b) == before
+    assert not Booking.objects.filter(customer_name="Intruder").exists()
+
+
+def test_block_form_cannot_use_another_venues_court(client, venue_a, venue_b):
+    client.force_login(venue_a.staff)
+    before = fingerprint(venue_b)
+    response = client.post(reverse("manage:block_new", args=[venue_a.pk]), _block_data(venue_b))
+    assert response.status_code == 200
+    assert fingerprint(venue_b) == before
+
+
+def test_customer_lookup_never_shows_other_venues_customers(client, venue_a, venue_b):
+    """Venue B's customer must not be visible from venue A, even with the same phone."""
+    client.force_login(venue_a.staff)
+    other = venue_b.booking.venue_customer
+    other.name = "Secret B customer"
+    other.save()
+    response = client.get(
+        reverse("manage:customer_lookup", args=[venue_a.pk]), {"customer_phone": "0715551234"}
+    )
+    assert "Secret B customer" not in response.content.decode()

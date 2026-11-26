@@ -1,0 +1,18 @@
+{% load i18n matchvia %}
+{# One booking or block in the calendar. Colour plus a text label, never colour alone (screens 1.6). #}
+<a href="{% url 'manage:booking_detail' venue.pk b.pk %}"
+   class="block h-full min-h-12 rounded-md border px-2 py-1 text-left text-xs leading-tight
+   {% if b.kind == 'block' %}border-slate-300 bg-slate-200 text-slate-700
+   {% elif b.status == 'cancelled' %}border-slate-200 bg-white text-slate-400 line-through
+   {% elif b.status == 'no_show' %}border-2 border-red-600 bg-white text-red-800
+   {% elif b.source == 'online' %}border-blue-300 bg-blue-50 text-blue-900
+   {% elif b.source == 'walk_in' %}border-amber-300 bg-amber-50 text-amber-900
+   {% else %}border-purple-300 bg-purple-50 text-purple-900{% endif %}">
+  {% if b.kind == "block" %}
+    <span class="block font-semibold">{% translate "Blocked" %}</span>
+    <span class="block">{{ b.get_block_reason_display }}</span>
+  {% else %}
+    <span class="block truncate font-semibold">{% if b.checked_in_at %}✓ {% endif %}{{ b.customer_name|default:"—" }}</span>
+    <span class="block">{% if b.status == "no_show" %}{% translate "No-show" %}{% elif b.status == "cancelled" %}{% translate "Cancelled" %}{% else %}{{ b.get_source_display }}{% endif %}</span>
+  {% endif %}
+</a>

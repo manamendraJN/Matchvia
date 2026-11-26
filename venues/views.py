@@ -23,10 +23,11 @@ from .forms import (
     DayHoursFormSet,
     ImageUploadForm,
     PeakPeriodFormSet,
+    StaffForm,
     VenueCreateForm,
     VenueProfileForm,
 )
-from .models import Court, MemberRole, OpeningHours, VenuePhoto
+from .models import Court, MemberRole, OpeningHours, VenueMembership, VenuePhoto
 
 COURT_FIELDS = [
     "name",
@@ -76,19 +77,6 @@ def create(request):
         messages.success(request, _("Your venue is created. Add the location and photos next."))
         return redirect("manage:profile", venue_id=venue.pk)
     return render(request, "venues/create.html", {"form": form})
-
-
-# ---------------------------------------------------------------- dashboard home
-
-
-@members_only
-def dashboard(request, venue):
-    context = _context(
-        venue,
-        missing=services.missing_for_submission(venue),
-        court_count=Court.objects.for_venue(venue).filter(is_active=True).count(),
-    )
-    return render(request, "venues/dashboard.html", context)
 
 
 # ---------------------------------------------------------------- profile and photos (V2, V25)
@@ -349,3 +337,41 @@ def prices(request, venue):
         _read_only(peak_formset, *(form for _court, form in court_forms))
     context = _context(venue, court_forms=court_forms, peak_formset=peak_formset)
     return render(request, "venues/prices.html", context)
+
+
+# ---------------------------------------------------------------- staff (V24)
+
+
+@owner_only
+@require_http_methods(["GET", "POST"])
+def staff(request, venue):
+    form = StaffForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        try:
+            services.add_member(venue, request.user, **form.cleaned_data)
+        except RuleViolation as exc:
+            form.add_error(None, exc.message)
+        else:
+            messages.success(
+                request, _("Added. They'll get an SMS and can sign in with their number.")
+            )
+            return redirect("manage:staff", venue_id=venue.pk)
+    members = (
+        VenueMembership.objects.for_venue(venue)
+        .select_related("user")
+        .order_by("role", "created_at")
+    )
+    return render(request, "venues/staff.html", _context(venue, form=form, members=members))
+
+
+@owner_only
+@require_POST
+def staff_remove(request, venue, membership_id):
+    membership = get_object_or_404(VenueMembership.objects.for_venue(venue), pk=membership_id)
+    try:
+        services.remove_member(venue, request.user, membership.pk)
+    except RuleViolation as exc:
+        messages.error(request, exc.message)
+    else:
+        messages.success(request, _("Removed. Their access has ended."))
+    return redirect("manage:staff", venue_id=venue.pk)

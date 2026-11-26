@@ -1,0 +1,56 @@
+{% extends "venues/_layout.html" %}
+{% load i18n matchvia %}
+
+{% block staff_note %}{% endblock %}
+
+{% block venue_content %}
+  {% if not court %}
+    <p class="rounded-lg bg-slate-100 px-4 py-3">{% translate "Add your courts first." %}</p>
+  {% else %}
+    <form method="get" class="flex items-end gap-2">
+      <div class="flex-1 space-y-1">
+        <label for="week-court" class="text-sm text-slate-600">{% translate "Court" %}</label>
+        <select id="week-court" name="court" class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-3">
+          {% for c in courts %}<option value="{{ c.pk }}" {% if c.pk == court.pk %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <input type="hidden" name="date" value="{{ first.isoformat }}">
+      <button type="submit" class="rounded-lg border border-slate-300 bg-white px-4 py-3 font-semibold">{% translate "Show" %}</button>
+    </form>
+
+    <div class="flex items-center justify-between">
+      <a href="?court={{ court.pk }}&amp;date={{ prev_week.isoformat }}" class="rounded-lg border border-slate-300 bg-white px-4 py-3">◀</a>
+      <p class="font-semibold">{{ first|day }} – {{ week.days|last|day }}</p>
+      <a href="?court={{ court.pk }}&amp;date={{ next_week.isoformat }}" class="rounded-lg border border-slate-300 bg-white px-4 py-3">▶</a>
+    </div>
+
+    <div class="-mx-4 overflow-x-auto px-4">
+      <table class="w-full min-w-max border-separate border-spacing-1 text-xs">
+        <thead>
+          <tr>
+            <th class="sticky left-0 z-10 w-14 bg-slate-50"></th>
+            {% for d in week.days %}
+              <th class="min-w-20 py-2 font-semibold"><a href="{% url 'manage:dashboard' venue.pk %}?date={{ d.isoformat }}" class="underline">{{ d|day }}</a></th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in week.rows %}
+            <tr>
+              <th scope="row" class="sticky left-0 z-10 bg-slate-50 pr-1 text-right align-top font-normal text-slate-500">{{ row.label }}</th>
+              {% for cell in row.cells %}
+                {% if cell.kind == "booking" %}
+                  <td rowspan="{{ cell.rowspan }}" class="align-top">{% include "bookings/manage/_card.html" with b=cell.booking %}</td>
+                {% elif cell.kind == "free" %}
+                  <td><a href="{% url 'manage:booking_new' venue.pk %}?{{ cell.query }}" class="flex min-h-10 items-center justify-center rounded border border-dashed border-green-600 text-green-700">+</a></td>
+                {% elif cell.kind == "closed" %}
+                  <td class="rounded bg-slate-100"></td>
+                {% endif %}
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}
