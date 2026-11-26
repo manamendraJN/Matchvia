@@ -1,0 +1,18 @@
+{# One form field with label, help text and errors. Usage: {% include "components/field.html" with field=form.name %} #}
+<div class="space-y-1">
+  {% if field.widget_type == "checkboxselectmultiple" %}
+    <fieldset>
+      <legend class="block text-sm font-medium text-slate-700">{{ field.label }}</legend>
+      <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 [&_label]:flex [&_label]:items-center [&_label]:gap-3 [&_label]:rounded-lg [&_label]:border [&_label]:border-slate-200 [&_label]:bg-white [&_label]:px-3 [&_label]:py-3 [&_input]:size-5 [&_input]:accent-green-700">
+        {% for choice in field %}{{ choice.tag }}{% endfor %}
+      </div>
+    </fieldset>
+  {% else %}
+    <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-slate-700">{{ field.label }}</label>
+    {{ field }}
+  {% endif %}
+  {% if field.help_text %}<p class="text-sm text-slate-500">{{ field.help_text }}</p>{% endif %}
+  {% for error in field.errors %}
+    <p class="text-sm text-red-700">{{ error }}</p>
+  {% endfor %}
+</div>

@@ -15,3 +15,9 @@ def _isolate_cache_and_sms():
     yield
     locmem.outbox.clear()
     locmem.fail_with = None
+
+
+@pytest.fixture(autouse=True)
+def _media_in_tmp(settings, tmp_path):
+    """Uploaded files go to a throwaway folder, never into the project."""
+    settings.MEDIA_ROOT = tmp_path / "media"

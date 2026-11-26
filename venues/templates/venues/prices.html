@@ -1,0 +1,56 @@
+{% extends "venues/_layout.html" %}
+{% load i18n %}
+
+{% block venue_content %}
+  <form method="post" action="{% url 'manage:prices' venue.pk %}" class="space-y-8" novalidate>
+    {% csrf_token %}
+
+    <section class="space-y-3">
+      <div class="space-y-1">
+        <h2 class="text-lg font-semibold">{% translate "Prices per booking slot" %}</h2>
+        <p class="text-sm text-slate-600">{% translate "Each slot is priced by its start time. New prices apply to new bookings only." %}</p>
+      </div>
+      {% if court_forms %}
+        <ul class="space-y-3">
+          {% for court, form in court_forms %}
+            <li class="space-y-2 rounded-xl border border-slate-200 bg-white p-3">
+              <p class="font-semibold">{{ court.name }} <span class="text-sm font-normal text-slate-500">· {% blocktranslate with m=court.slot_minutes %}{{ m }} min{% endblocktranslate %}</span></p>
+              <div class="grid grid-cols-2 gap-3">
+                {% include "components/field.html" with field=form.off_peak_price_lkr %}
+                {% include "components/field.html" with field=form.peak_price_lkr %}
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-sm text-slate-600">{% translate "Add a court first." %}</p>
+      {% endif %}
+    </section>
+
+    <section class="space-y-3">
+      <div class="space-y-1">
+        <h2 class="text-lg font-semibold">{% translate "Peak times" %}</h2>
+        <p class="text-sm text-slate-600">{% translate "Slots that start inside these times use the peak price. Leave the empty row blank if you don't need it." %}</p>
+      </div>
+      {{ peak_formset.management_form }}
+      {% for error in peak_formset.non_form_errors %}<p class="text-sm text-red-700">{{ error }}</p>{% endfor %}
+      <ul class="space-y-2">
+        {% for form in peak_formset %}
+          <li class="grid grid-cols-3 items-end gap-2 rounded-xl border border-slate-200 bg-white p-3">
+            <div class="space-y-1"><label for="{{ form.weekday.id_for_label }}" class="text-xs text-slate-600">{% translate "Day" %}</label>{{ form.weekday }}</div>
+            <div class="space-y-1"><label for="{{ form.starts_minute.id_for_label }}" class="text-xs text-slate-600">{% translate "From" %}</label>{{ form.starts_minute }}</div>
+            <div class="space-y-1"><label for="{{ form.ends_minute.id_for_label }}" class="text-xs text-slate-600">{% translate "To" %}</label>{{ form.ends_minute }}</div>
+            {% if can_edit and form.initial %}
+              <label class="col-span-3 flex items-center gap-2 text-sm text-red-700">{{ form.DELETE }} {% translate "Remove this peak time" %}</label>
+            {% endif %}
+            {% for error in form.non_field_errors %}<p class="col-span-3 text-sm text-red-700">{{ error }}</p>{% endfor %}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    {% if can_edit %}
+      <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white hover:bg-green-800">{% translate "Save prices" %}</button>
+    {% endif %}
+  </form>
+{% endblock %}

@@ -15,13 +15,18 @@
 
       <form method="post" action="{% url 'me:account' %}" class="space-y-3" novalidate>
         {% csrf_token %}
-        {% include "accounts/_form_errors.html" %}
-        {% include "accounts/_field.html" with field=form.name %}
+        {% include "components/form_errors.html" %}
+        {% include "components/field.html" with field=form.name %}
         <button type="submit" class="rounded-lg bg-green-700 px-4 py-2 font-semibold text-white hover:bg-green-800">
           {% translate "Save name" %}
         </button>
       </form>
     </div>
+
+    <a href="{% url 'manage:home' %}" class="block rounded-xl border border-slate-200 bg-white p-4 font-semibold text-green-800 hover:bg-green-50">
+      {% translate "Venue dashboard" %}
+      <span class="block text-sm font-normal text-slate-600">{% translate "Manage your venue, or list a new one." %}</span>
+    </a>
 
     <form method="post" action="{% url 'accounts:logout' %}">
       {% csrf_token %}

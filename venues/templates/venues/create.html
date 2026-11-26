@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "List my venue" %} · Matchvia{% endblock %}
+
+{% block content %}
+  <section class="space-y-6">
+    <div class="space-y-1">
+      <h1 class="text-2xl font-bold tracking-tight">{% translate "List my venue" %}</h1>
+      <p class="text-slate-600">{% translate "Set up your venue in about 10 minutes. You can change everything later." %}</p>
+    </div>
+
+    <form method="post" action="{% url 'manage:create' %}" class="space-y-4" novalidate>
+      {% csrf_token %}
+      {% include "components/form_errors.html" %}
+      {% include "components/field.html" with field=form.name %}
+      {% include "components/field.html" with field=form.area %}
+      {% include "components/field.html" with field=form.phone %}
+      <p class="text-sm text-slate-500">{% translate "Don't see your area? Contact Matchvia and we'll add it." %}</p>
+      <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white hover:bg-green-800">
+        {% translate "Create venue" %}
+      </button>
+    </form>
+  </section>
+{% endblock %}

@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import TemplateView
@@ -11,6 +12,7 @@ urlpatterns = [
     path("healthz", healthz, name="healthz"),
     path("auth/", include("accounts.urls")),
     path("me/", include("accounts.urls_me")),
+    path("manage/", include("venues.urls")),
     path(
         "privacy/",
         TemplateView.as_view(
@@ -28,3 +30,7 @@ urlpatterns = [
     # Platform admin lives at a private, non-default path (architecture 2.4, D16).
     path(settings.ADMIN_URL_PATH, admin.site.urls),
 ]
+
+if settings.DEBUG:
+    # Development only: serve uploaded photos. Production serves them from object storage.
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

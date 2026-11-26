@@ -12,8 +12,8 @@
 
     <form method="post" action="{% url 'accounts:welcome' %}" class="space-y-5" novalidate>
       {% csrf_token %}
-      {% include "accounts/_form_errors.html" %}
-      {% include "accounts/_field.html" with field=form.name %}
+      {% include "components/form_errors.html" %}
+      {% include "components/field.html" with field=form.name %}
 
       <div class="space-y-1">
         <label for="{{ form.accept.id_for_label }}" class="flex items-start gap-3 text-sm text-slate-700">

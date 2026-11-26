@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "My venues" %} · Matchvia{% endblock %}
+
+{% block content %}
+  <section class="space-y-6">
+    <h1 class="text-2xl font-bold tracking-tight">{% translate "My venues" %}</h1>
+
+    {% if memberships %}
+      <ul class="space-y-3">
+        {% for m in memberships %}
+          <li>
+            <a href="{% url 'manage:dashboard' m.venue.pk %}" class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:bg-slate-50">
+              <span>
+                <span class="block font-semibold">{{ m.venue.name }}</span>
+                <span class="block text-sm text-slate-500">{{ m.venue.area }} · {{ m.get_role_display }}</span>
+              </span>
+              <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">{{ m.venue.get_status_display }}</span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-slate-600">{% translate "Own a futsal or indoor cricket venue? List it on Matchvia and manage every booking in one calendar." %}</p>
+    {% endif %}
+
+    <a href="{% url 'manage:create' %}" class="block w-full rounded-lg bg-green-700 px-4 py-3 text-center text-lg font-semibold text-white hover:bg-green-800">
+      {% translate "List my venue" %}
+    </a>
+  </section>
+{% endblock %}
