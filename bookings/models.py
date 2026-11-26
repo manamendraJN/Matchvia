@@ -110,6 +110,11 @@ class Booking(models.Model):
     no_show_marked_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
+    # "Arrived" tick for the front desk (C6). Records who and when; changes no rule.
+    checked_in_at = models.DateTimeField(null=True, blank=True)
+    checked_in_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
@@ -224,6 +229,7 @@ class EventAction(models.TextChoices):
     EXPIRED = "expired", _("Expired")
     CUSTOMER_CHANGED = "customer_changed", _("Customer changed")
     NOTES_CHANGED = "notes_changed", _("Notes changed")
+    ARRIVED = "arrived", _("Arrived")
 
 
 class BookingEvent(models.Model):

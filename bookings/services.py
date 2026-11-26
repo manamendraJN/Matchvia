@@ -684,3 +684,31 @@ def link_phone_bookings(user) -> int:
     if not user.phone:
         return 0
     return VenueCustomer.objects.filter(phone=user.phone, user__isnull=True).update(user=user)
+
+
+# ---------------------------------------------------------------- arrived (C6)
+
+
+def mark_arrived(*, venue, actor, booking_id, now: datetime | None = None) -> Booking:
+    """Front-desk tick that the customer has arrived. Records who and when; changes no rule.
+
+    Only for confirmed bookings on or before today's operating day (not future days).
+    """
+    now = _now(now)
+    _require_member(venue, actor)
+    with transaction.atomic():
+        booking = (
+            Booking.objects.for_venue(venue)
+            .select_for_update()
+            .get(pk=booking_id, kind=Kind.BOOKING)
+        )
+        if booking.status != Status.CONFIRMED:
+            raise RuleViolation(_("Only confirmed bookings can be marked as arrived."))
+        if booking.operating_date > operating_date(now):
+            raise RuleViolation(_("You can mark arrivals on the day of the booking."))
+        if booking.checked_in_at is None:
+            booking.checked_in_at = now
+            booking.checked_in_by = actor
+            booking.save(update_fields=["checked_in_at", "checked_in_by", "updated_at"])
+            _event(booking, actor, EventAction.ARRIVED)
+    return booking

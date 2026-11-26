@@ -290,6 +290,63 @@ def set_opening_hours(venue: Venue, actor, days: Iterable[DayHours]) -> None:
             row.save()
 
 
+# ---------------------------------------------------------------- staff (US-O06, V24)
+
+
+def add_member(venue: Venue, actor, *, name: str, phone: str, role: str) -> VenueMembership:
+    """The owner gives someone access to this venue. They sign in with OTP on their own number.
+
+    A new number gets an account with the name the owner typed; on first sign-in they still
+    accept the privacy notice and terms themselves (NFR-07). They get an SMS (US-O06).
+    """
+    from django.contrib.auth import get_user_model
+
+    _require_owner(venue, actor)
+    if role not in MemberRole.values:
+        raise RuleViolation(_("Choose staff or owner."))
+    name = " ".join((name or "").split())
+    if not name:
+        raise RuleViolation(_("Enter their name."))
+    User = get_user_model()
+    with transaction.atomic():
+        user = User.objects.filter(phone=phone).first()
+        if user is None:
+            user = User.objects.create_user(phone=phone, name=name[:80])
+        elif not user.is_active:
+            raise RuleViolation(_("This account is disabled."))
+        if VenueMembership.objects.for_venue(venue).filter(user=user).exists():
+            raise RuleViolation(_("This person already works at this venue."))
+        membership = VenueMembership.objects.create(
+            venue=venue, user=user, role=role, added_by=actor
+        )
+        notifications.queue_sms(
+            to_phone=phone,
+            purpose="staff_added",
+            body=_(
+                "Matchvia: You can now manage bookings at %(venue)s. Sign in on Matchvia with "
+                "this number."
+            )
+            % {"venue": venue.name},
+        )
+    logger.info("venue.member_added venue_id=%s user_id=%s role=%s", venue.pk, user.pk, role)
+    return membership
+
+
+def remove_member(venue: Venue, actor, membership_id) -> None:
+    """Access ends on their next request (US-O06). A venue always keeps at least one owner."""
+    _require_owner(venue, actor)
+    with transaction.atomic():
+        memberships = VenueMembership.objects.for_venue(venue).select_for_update()
+        membership = memberships.get(pk=membership_id)
+        if (
+            membership.role == MemberRole.OWNER
+            and memberships.filter(role=MemberRole.OWNER).count() == 1
+        ):
+            raise RuleViolation(_("A venue needs at least one owner."))
+        membership.delete()
+    logger.info("venue.member_removed venue_id=%s membership_id=%s", venue.pk, membership_id)
+
+
 # ---------------------------------------------------------------- approval workflow (BR-22)
 
 
