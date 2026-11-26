@@ -625,3 +625,6 @@ security.
 | S01 | 26 Nov 2026 | 26 Nov 2026 | 0.5 | Prompt C1. Local PostgreSQL 17 instead of Docker Compose for now (Docker not installed); `compose.yaml` comes with the Dockerfile in S12 |
 | S02 | 26 Nov 2026 | 26 Nov 2026 | (with S01) | Prompt C1. Branch protection on `main` must be switched on by hand in GitHub settings |
 | S09 (part) | 26 Nov 2026 | | | Prompt C1: base template, vendored htmx 2.0.11 (eval off), Tailwind standalone CLI, PWA manifest and icons, CSP nonces. Components, formatters, pseudo-locale, error pages and service worker still to do |
+| S03 (part) | 26 Nov 2026 | | | Prompt C2: `User` model and first migration, `core/phone.py`, `core/exceptions.py`, `core/db.py`, factories. `core/timeutils.py` and `VenueOwnedQuerySet` still to do |
+| S08 (part) | 26 Nov 2026 | | | Prompt C2: `SmsMessage` outbox, console/locmem backends, Text.lk placeholder, `run_worker` with retries and OTP drop. Worker heartbeat, purge job and real Text.lk adapter still to do (C7) |
+| S10 (part) | 26 Nov 2026 | | | Prompt C2: OTP request/verify with all BR-27 limits, P4–P6, consent, sign-out, P18 account and P19 deletion (accounts part). OTP text encrypted in the outbox (data-model 3.6). Still to do: Turnstile (D5), per-role session lifetimes (D9), linking VenueCustomer rows at first sign-in (needs S04), deletion steps for venues/bookings/teams (S26) |

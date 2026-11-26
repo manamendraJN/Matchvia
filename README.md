@@ -29,6 +29,13 @@ uv run python manage.py runserver
 
 Open http://localhost:8000. The health check is at http://localhost:8000/healthz.
 
+To sign in locally, start the worker in a second terminal (`uv run python manage.py run_worker`).
+SMS are never sent in development: the worker prints them, so the 6-digit code appears there.
+
+To use the admin site, create a platform admin:
+`uv run python manage.py createsuperuser` (asks for a mobile number like `+94771234567`, a name and a
+password).
+
 Generate each secret with:
 
 ```sh
@@ -40,6 +47,7 @@ uv run python -c "import secrets; print(secrets.token_urlsafe(50))"
 | Task | Command |
 |---|---|
 | Run the site | `uv run python manage.py runserver` |
+| Run the background worker (prints SMS, including sign-in codes, in development) | `uv run python manage.py run_worker` |
 | Rebuild CSS while editing templates | `uv run python scripts/tailwind.py watch` |
 | Run all tests | `uv run pytest` |
 | Tests with coverage | `uv run pytest --cov` |

@@ -133,7 +133,7 @@ sequenceDiagram
     D->>D: normalise to +947XXXXXXXX, reject non-Sri Lankan mobiles
     D->>D: verify Turnstile token, check IP limit (10 per hour)
     D->>DB: count recent challenges for phone (3 per 15 min, lock after 5 wrong codes)
-    D->>DB: BEGIN insert OTPChallenge(code_hash), insert SmsMessage(otp, redacted body) COMMIT
+    D->>DB: BEGIN insert OTPChallenge(code_hash), insert SmsMessage(otp, redacted body + encrypted text) COMMIT
     D-->>P: "Code sent" page (same reply whether or not the number has an account)
     W->>DB: pick queued SMS (FOR UPDATE SKIP LOCKED)
     W->>G: send code
@@ -156,6 +156,10 @@ Key points:
 - The OTP SMS is sent by the worker in seconds, not inside the request, so a slow gateway never
   blocks the page. If the worker finds an OTP message older than 5 minutes it drops it (the code
   has expired anyway).
+- The outbox stores the OTP text **encrypted** (Fernet; key derived from `OTP_HMAC_KEY`), readable
+  for 5 minutes and wiped once sent or dropped; the visible `body` is `[OTP]` (data-model 3.6).
+- In development the console SMS backend prints messages in the worker's terminal
+  (`manage.py run_worker`); it refuses to start unless `DEBUG` is on.
 - The `next` redirect only accepts local paths (`url_has_allowed_host_and_scheme`), so the login
   cannot become an open redirect.
 

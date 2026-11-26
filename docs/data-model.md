@@ -114,12 +114,16 @@ constraint, `null` = nullable. Fields are not nullable unless marked.
 | expires_at | DateTimeField | `created_at + 5 min` (BR-27) |
 | attempts | PositiveSmallInteger, default 0 | Wrong guesses on this challenge |
 | consumed_at | DateTimeField, null | Set on success; a consumed code cannot be reused |
+| locked_until | DateTimeField, null | Set on the wrong guess that brings the number to 5 wrong codes within 15 minutes; the number is locked until then (BR-27) |
 | ip_address | GenericIPAddressField, null | For abuse investigation |
 | created_at | DateTimeField | |
 
 - **IX** `(phone, created_at)`: supports "max 3 requests per 15 min" and "5 wrong codes then 15-minute
   lock", counted from this table (BR-27).
 - Per-IP limits (10 per hour) live in the cache-based rate limiter, not in this table.
+- **CK** `purpose` in choices; **CK** `attempts <= 5`.
+- The lock is stored explicitly (`locked_until`) rather than recomputed from recent attempts, so it always lasts the full 15 minutes even when older wrong guesses age out of the window.
+- `created_at` uses a Python default (`timezone.now`) instead of `db_default=Now()`: the rate-limit rules compare it with Python's clock, and tests freeze that clock.
 - Rows older than 24 hours are deleted by a daily job (minimum data).
 
 **Trade-off:** counting from the database survives restarts and works with several app servers
@@ -519,6 +523,7 @@ states valid):
 | to_phone | CharField(16), null | Wiped after sending + 90 days, or on account deletion |
 | purpose | CharField: `otp`, `booking_confirmation`, `booking_changed`, `booking_cancelled`, `reminder`, `series_summary`, `series_decision`, `team_invite`, `staff_added`, `venue_status`, `venue_notice` | **CK** |
 | body | TextField | For `otp` the stored body is redacted (`[OTP]`); the real text is only sent to the gateway |
+| encrypted_body | TextField, blank | `otp` only: the real text, encrypted (Fernet, key derived from `OTP_HMAC_KEY` with HKDF) so the worker can send it. Unreadable after 5 minutes; emptied when the message is sent, dropped or failed |
 | venue | FK Venue, SET_NULL, null | For venue-related messages |
 | booking | FK Booking, SET_NULL, null | |
 | status | CharField: `queued`, `sent`, `failed`, `cancelled` | **CK** |
@@ -528,8 +533,11 @@ states valid):
 | provider_message_id | CharField(100), blank | |
 | last_error | CharField(255), blank | |
 | created_at | DateTimeField | |
+| updated_at | DateTimeField | auto |
 
-- Partial **IX** `(scheduled_for)` where `status = 'queued'`: the send job's queue.
+- Partial **IX** `(scheduled_for)` where `status = 'queued'`: the send job's queue. **IX** `(to_phone)` for deletion and purge.
+- **CK** `purpose` and `status` in choices; **CK** `status = 'queued' OR encrypted_body = ''`.
+- **Why `encrypted_body`:** the worker sends the OTP after the request has finished, so it needs the code, but the outbox must not hold readable codes. Encrypting with a key that lives only in the environment keeps a database leak (or backup) from exposing live codes. Added in C2; `venue` and `booking` foreign keys are added by the S04/S06 migrations.
 - **UQ** `(booking, purpose)` where `purpose = 'reminder' AND status <> 'cancelled'`: one reminder
   per booking (US-P07).
 - **Outbox pattern:** the message row is written **in the same transaction** as the booking.
