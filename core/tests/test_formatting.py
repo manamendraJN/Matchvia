@@ -16,3 +16,11 @@ def test_formats():
     assert format_lkr(3500) == "Rs. 3,500"
     assert format_lkr(0) == "Rs. 0"
     assert format_lkr(100000) == "Rs. 100,000"
+
+
+def test_format_date():
+    from datetime import date
+
+    from core.formatting import format_date
+
+    assert format_date(date(2026, 12, 5)) == "Sat 5 Dec"

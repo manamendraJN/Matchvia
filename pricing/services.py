@@ -37,23 +37,41 @@ def create_default_peak_periods(venue) -> None:
     )
 
 
-def _peak_windows(venue) -> dict[int, list[tuple[int, int]]]:
-    windows: dict[int, list[tuple[int, int]]] = {}
-    for period in PeakPeriod.objects.for_venue(venue):
-        windows.setdefault(period.weekday, []).append((period.starts_minute, period.ends_minute))
-    return windows
+PeakWindows = dict[int, list[tuple[int, int]]]
 
 
-def _is_peak(windows: dict[int, list[tuple[int, int]]], start: datetime) -> bool:
+def peak_windows(venue) -> PeakWindows:
+    """A venue's peak periods by weekday: {weekday: [(starts_minute, ends_minute), ...]}."""
+    return peak_windows_for([venue]).get(venue.pk, {})
+
+
+def peak_windows_for(venues) -> dict[int, PeakWindows]:
+    """Peak windows for many venues in one query (search, NFR-02)."""
+    result: dict[int, PeakWindows] = {}
+    for period in PeakPeriod.objects.filter(venue__in=list(venues)):
+        result.setdefault(period.venue_id, {}).setdefault(period.weekday, []).append(
+            (period.starts_minute, period.ends_minute)
+        )
+    return result
+
+
+def _is_peak(windows: PeakWindows, start: datetime) -> bool:
     weekday = operating_date(start).weekday()
     minute = operating_minute(start)
     return any(begin <= minute < end for begin, end in windows.get(weekday, []))
 
 
-def slot_prices(court, start_at: datetime, end_at: datetime | None = None) -> list[SlotPrice]:
+def slot_prices(
+    court,
+    start_at: datetime,
+    end_at: datetime | None = None,
+    *,
+    windows: PeakWindows | None = None,
+) -> list[SlotPrice]:
     """Price of each slot from ``start_at`` to ``end_at`` (one slot if ``end_at`` is None).
 
     The range must be a whole number of the court's slots. Raises ValueError otherwise.
+    Pass ``windows`` (from peak_windows_for) to avoid a query per court.
     """
     slot = timedelta(minutes=court.slot_minutes)
     end_at = end_at or start_at + slot
@@ -63,7 +81,8 @@ def slot_prices(court, start_at: datetime, end_at: datetime | None = None) -> li
     if length % slot:
         raise ValueError(f"The range must be whole {court.slot_minutes}-minute slots.")
 
-    windows = _peak_windows(court.venue)
+    if windows is None:
+        windows = peak_windows(court.venue)
     result = []
     start = start_at
     while start < end_at:

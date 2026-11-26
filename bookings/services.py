@@ -669,3 +669,18 @@ def undo_no_show(*, venue, actor, booking_id, now: datetime | None = None) -> Bo
             ) from None
         _event(booking, actor, EventAction.NO_SHOW_UNDONE)
     return booking
+
+
+# ---------------------------------------------------------------- linking phone bookings (US-P01)
+
+
+def link_phone_bookings(user) -> int:
+    """Attach venue customer rows with the player's verified number to their account.
+
+    Bookings staff entered by phone or WhatsApp then appear in My bookings and can be cancelled
+    by the player (US-P01, US-P05). Safe to call often: only unlinked rows change. The number
+    was proven by OTP at sign-in, so matching on it is safe.
+    """
+    if not user.phone:
+        return 0
+    return VenueCustomer.objects.filter(phone=user.phone, user__isnull=True).update(user=user)

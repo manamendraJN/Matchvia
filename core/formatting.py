@@ -1,6 +1,6 @@
 """How times, dates and money look to people (screens.md 1.5, NFR-10, UX1 12-hour time)."""
 
-from datetime import datetime
+from datetime import date, datetime
 
 from django.contrib.humanize.templatetags.humanize import intcomma
 from django.utils import dateformat
@@ -20,6 +20,11 @@ def format_time(dt: datetime) -> str:
 def format_day(dt: datetime) -> str:
     """'Sat 5 Dec' in Colombo time."""
     return dateformat.format(local(dt), "D j M")
+
+
+def format_date(day: date) -> str:
+    """'Sat 5 Dec' for a calendar date."""
+    return dateformat.format(day, "D j M")
 
 
 def format_range(start: datetime, end: datetime) -> str:
