@@ -62,10 +62,19 @@ def test_database_rejects_deleted_user_with_phone():
 
 
 def test_database_rejects_unnormalised_phone_written_outside_django():
+    from django.db import connection
+
     user = User.objects.create_user(phone="+94771234567")
     for bad in ["0771234567", "+94112345678", "+447911123456"]:
-        with pytest.raises(IntegrityError), transaction.atomic():
-            User.objects.filter(pk=user.pk).update(phone=bad)
+        with pytest.raises(IntegrityError), transaction.atomic(), connection.cursor() as cursor:
+            cursor.execute("UPDATE accounts_user SET phone = %s WHERE id = %s", [bad, user.pk])
+
+
+def test_django_writes_are_normalised():
+    user = User.objects.create_user(phone="+94771234567")
+    User.objects.filter(pk=user.pk).update(phone="0711234567")
+    user.refresh_from_db()
+    assert user.phone == "+94711234567"
 
 
 def test_several_deleted_users_can_exist():
@@ -120,3 +129,22 @@ def test_database_caps_attempts_at_five():
 def test_database_rejects_unknown_otp_purpose():
     with pytest.raises(IntegrityError), transaction.atomic():
         _challenge(purpose="reset_password")
+
+
+def test_createsuperuser_accepts_local_number_format(monkeypatch):
+    """`manage.py createsuperuser` with 076 4390987 works like the sign-in page."""
+    from django.core.management import call_command
+
+    monkeypatch.setenv("DJANGO_SUPERUSER_PASSWORD", "a-long-admin-password")
+    call_command("createsuperuser", interactive=False, phone="076 439 0987", name="Founder")
+
+    admin = User.objects.get(phone="+94764390987")
+    assert admin.is_superuser
+    assert admin.check_password("a-long-admin-password")
+
+
+def test_full_clean_normalises_phone():
+    user = User(phone="0764390987", name="X")
+    user.set_unusable_password()
+    user.full_clean()
+    assert user.phone == "+94764390987"

@@ -117,7 +117,10 @@ def test_location_must_be_in_sri_lanka_and_complete(venue, lat, lng):
 def test_unknown_facility_and_status_rejected(venue):
     rejected(Venue.objects.filter(pk=venue.pk), facilities=["pool"])
     rejected(Venue.objects.filter(pk=venue.pk), status="live")
-    rejected(Venue.objects.filter(pk=venue.pk), phone="0771234567")
+    from django.db import connection
+
+    with pytest.raises(IntegrityError), transaction.atomic(), connection.cursor() as cursor:
+        cursor.execute("UPDATE venues_venue SET phone = %s WHERE id = %s", ["0771234567", venue.pk])
 
 
 @pytest.mark.parametrize(

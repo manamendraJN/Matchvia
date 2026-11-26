@@ -9,6 +9,7 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from core.fields import PhoneField
 from core.phone import InvalidPhone, normalise_phone, validate_phone
 
 DELETED_USER_NAME = "Deleted user"
@@ -69,14 +70,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     """One account per phone number. Anonymised on deletion, never hard-deleted (BR-25)."""
 
     # Null only for deleted users, so several deleted users can coexist (unique allows NULLs).
-    phone = models.CharField(
-        _("mobile number"),
-        max_length=16,
-        unique=True,
-        null=True,
-        blank=True,
-        validators=[validate_phone],
-    )
+    phone = PhoneField(_("mobile number"), unique=True, null=True, blank=True)
     # Blank until the first-time profile step (US-P01).
     name = models.CharField(_("name"), max_length=80, blank=True)
     is_active = models.BooleanField(_("active"), default=True)

@@ -15,7 +15,7 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from core.phone import validate_phone
+from core.fields import PhoneField
 from core.querysets import VenueOwnedQuerySet
 from core.timeutils import DAY_END_MINUTE, DAY_START_MINUTE
 
@@ -106,7 +106,7 @@ class Venue(models.Model):
     longitude = models.DecimalField(
         _("longitude"), max_digits=9, decimal_places=6, null=True, blank=True
     )
-    phone = models.CharField(_("venue phone"), max_length=16, validators=[validate_phone])
+    phone = PhoneField(_("venue phone"))
     description = models.TextField(_("description"), blank=True)
     facilities = ArrayField(
         models.CharField(max_length=30, choices=Facility.choices), default=list, blank=True
