@@ -1,0 +1,36 @@
+{% extends "admin/base_site.html" %}
+{% load i18n humanize %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate "Home" %}</a>
+  &rsaquo; <a href="{% url 'admin:venues_venue_changelist' %}">{% translate "Venues" %}</a>
+  &rsaquo; {{ venue.name }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <h2>{{ venue.name }} — {{ venue.get_status_display }}</h2>
+  {% if venue.status_reason %}<p><strong>{% translate "Reason:" %}</strong> {{ venue.status_reason }}</p>{% endif %}
+
+  <table>
+    <tr><th>{% translate "Area" %}</th><td>{{ venue.area }}</td></tr>
+    <tr><th>{% translate "Address" %}</th><td>{{ venue.address|default:"—" }}</td></tr>
+    <tr><th>{% translate "Location" %}</th><td>{% if venue.latitude %}{{ venue.latitude }}, {{ venue.longitude }}{% else %}—{% endif %}</td></tr>
+    <tr><th>{% translate "Venue phone" %}</th><td>{{ venue.phone }}</td></tr>
+    <tr><th>{% translate "Owners" %}</th><td>{% for m in owners %}{{ m.user.name }} ({{ m.user.phone }}){% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td></tr>
+    <tr><th>{% translate "Courts" %}</th><td>{% for c in courts %}{{ c.name }}: Rs. {{ c.off_peak_price_lkr|intcomma }} / {{ c.peak_price_lkr|intcomma }}{% if not c.is_active %} ({% translate "inactive" %}){% endif %}<br>{% empty %}—{% endfor %}</td></tr>
+  </table>
+
+  {% if missing %}
+    <p class="errornote">{% translate "Missing:" %} {{ missing|join:"; " }}</p>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="{% translate 'Save decision' %}" class="default">
+  </form>
+</div>
+{% endblock %}
