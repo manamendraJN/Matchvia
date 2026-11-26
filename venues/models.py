@@ -367,3 +367,56 @@ class OpeningHours(models.Model):
 
     def __str__(self) -> str:
         return f"Weekday {self.weekday}"
+
+
+class VenueCustomer(models.Model):
+    """The venue's own customer book: one row per phone number per venue (data-model 3.2).
+
+    Online players, phone/WhatsApp customers and walk-ins who gave a number all land here.
+    Walk-ins without a phone have no row; their booking keeps only a name. A block (BR-11) is
+    this venue's decision about this number, not a platform-wide ban.
+    """
+
+    venue = models.ForeignKey(Venue, on_delete=models.CASCADE, related_name="customers")
+    # Null only after the person deleted their account (BR-25).
+    phone = PhoneField(_("phone"), null=True, blank=True)
+    name = models.CharField(_("name"), max_length=80)
+    # Set when the phone belongs to a registered player, so their bookings show in My bookings.
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="venue_customers",
+    )
+    is_blocked_online = models.BooleanField(default=False)
+    blocked_at = models.DateTimeField(null=True, blank=True)
+    blocked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    block_reason = models.CharField(max_length=255, blank=True)
+    notes = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(default=timezone.now, editable=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    objects = VenueOwnedQuerySet.as_manager()
+
+    class Meta:
+        verbose_name = _("venue customer")
+        indexes = [models.Index(fields=["user"], name="customer_user_idx")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["venue", "phone"],
+                condition=Q(phone__isnull=False),
+                name="customer_one_row_per_phone",
+            ),
+            # Target for the composite foreign key from bookings (data-model 6.3).
+            models.UniqueConstraint(fields=["id", "venue"], name="customer_id_venue_unique"),
+        ]
+
+    def __str__(self) -> str:
+        return self.name

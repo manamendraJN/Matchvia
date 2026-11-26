@@ -9,8 +9,8 @@ from venues.models import Area, Court, MemberRole, VenueMembership
 
 
 def area(slug="malabe"):
-    """Launch areas are created by migration 0002."""
-    return Area.objects.get(slug=slug)
+    """A launch area (migration 0002). Tests with real transactions wipe them, so recreate."""
+    return Area.objects.get_or_create(slug=slug, defaults={"name": slug.title()})[0]
 
 
 def make_venue(owner=None, name="Arena X", area_slug="malabe", **profile):

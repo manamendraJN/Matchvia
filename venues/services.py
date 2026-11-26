@@ -70,6 +70,15 @@ def get_venue_for_user(user, venue_id, roles: Iterable[str] = MEMBERS) -> Venue:
     return venue
 
 
+def member_role(venue: Venue, user) -> str | None:
+    """The user's role at this venue ("owner" or "staff"), or None. Used by other apps' services."""
+    if not getattr(user, "is_authenticated", False) or not user.is_active:
+        return None
+    return (
+        VenueMembership.objects.for_venue(venue).filter(user=user).values_list("role", flat=True)
+    ).first()
+
+
 def memberships_for_user(user):
     """The venues a user works at, for the venue switcher (V7)."""
     return (
