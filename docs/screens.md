@@ -518,6 +518,11 @@ Progress shown as "Step 2 of 6 · Location" (text, not just dots).
 - **Actions:** tap a free cell → V10; tap a booking → V11; tap a day header → V8 for that day.
 - **Empty / error:** same as V8.
 
+*C6 note: V10, V13 and V14 are built as full pages rather than bottom sheets (more reliable on budget
+phones and slow networks); each action still takes 3 taps or fewer from the calendar (NFR-04).
+V11 also has an **Arrived ✓** button that records who and when, and V8 shows a one-line day
+summary (bookings, expected rupees, free peak slots).*
+
 #### V10 New booking (bottom sheet) · US-S02, US-S03
 
 ```

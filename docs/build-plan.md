@@ -88,8 +88,8 @@ changed) before the step that needs it.
 
 - [ ] **S13** Venue page and slot picker (P3) · 2.5 d
 - [ ] **S14** Booking review and confirmation (P4–P8) · 2 d
-- [ ] **S15** Venue calendar, day and week (V7–V9) · 3 d
-- [ ] **S16** New booking sheet and booking actions (V10–V13) · 3 d
+- [x] **S15** Venue calendar, day and week (V7–V9) · 3 d
+- [x] **S16** New booking sheet and booking actions (V10–V13) · 3 d
 - [ ] **S17** Booking SMS and reminders · 1.5 d
 - [ ] **S18** Demo-ready milestone (seed data, demo on staging) · 1 d
 
@@ -639,4 +639,8 @@ security.
 | S13/S14 | 26 Nov 2026 | 26 Nov 2026 | | Prompt C5: venue page with HTMX day strip, Unavailable chips, closed/horizon/fully-booked messages; review with length choice and cancellation deadline; confirm with "just taken" and double-tap handling; 10-per-hour booking rate limit; confirmation page with WhatsApp share. Map (Leaflet) and the 'share sheet' JS still to do |
 | S19 | 26 Nov 2026 | 26 Nov 2026 | | Prompt C5: search form (home) and results with HTMX filters, fixed query count for any number of venues, empty states. Search cache and the 60/min IP limit still to do |
 | S20 | 26 Nov 2026 | 26 Nov 2026 | | Prompt C5: My bookings (upcoming/past, staff-entered bookings linked by phone), details, cancel with confirmation |
+| S15 | 26 Nov 2026 | 26 Nov 2026 | | Prompt C6: day calendar (one column per court, source colours, blocks, free cells, now line, show cancelled, 30 s HTMX refresh, daily summary) and week view for one court. Venue switcher kept as the My venues list |
+| S16 | 26 Nov 2026 | 26 Nov 2026 | | Prompt C6: new booking (walk-in/phone/WhatsApp, UX4 default, durations, price change with reason, Save anyway, customer suggestions), booking details with history, move, cancel with late warning, no-show and undo, Arrived. Pages instead of bottom sheets |
+| S22 (part) | 26 Nov 2026 | | | Prompt C6: block time on one or more courts with the conflict list; remove a block. Closing a whole day with "cancel all and SMS" (V15) still to do |
+| S24 (part) | 26 Nov 2026 | | | Prompt C6: staff screen (V24): add by name and phone with SMS, remove, last-owner protection. Booking rules screen (V20) still to do |
 | S25 (part) | 26 Nov 2026 | | | Prompt C3: area admin, venue review page with approve/reject/suspend/unsuspend and owner SMS. Booking lookup and access log still to do (C9) |

@@ -378,6 +378,8 @@ booked online, by phone or by WhatsApp.
 | is_late_cancellation | Boolean, default False | Cancelled inside the venue's window (US-S05) |
 | no_show_marked_at | DateTimeField, null | |
 | no_show_marked_by | FK User, SET_NULL, null | |
+| checked_in_at | DateTimeField, null | "Arrived" tick at the front desk (C6). Changes no rule |
+| checked_in_by | FK User, SET_NULL, null | |
 | created_by | FK User, SET_NULL, null | Player (online) or staff member |
 | created_at / updated_at | DateTimeField | |
 
@@ -436,7 +438,7 @@ states valid):
 | venue | FK Venue, PROTECT | |
 | booking | FK Booking, CASCADE | |
 | actor | FK User, SET_NULL, null | Null for system actions (hold expiry) |
-| action | CharField: `created`, `moved`, `price_changed`, `cancelled`, `no_show`, `no_show_undone`, `confirmed`, `expired`, `customer_changed`, `notes_changed` | **CK** |
+| action | CharField: `created`, `moved`, `price_changed`, `cancelled`, `no_show`, `no_show_undone`, `confirmed`, `expired`, `customer_changed`, `notes_changed`, `arrived` | **CK** |
 | changes | JSONField, default {} | Before/after of **non-personal** fields only (times, court, price, status) |
 | created_at | DateTimeField | |
 
