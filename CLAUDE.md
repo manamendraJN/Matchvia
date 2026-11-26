@@ -20,6 +20,8 @@ Tagline: "Book your court. Bring your team." Owners: two co-founders. Business d
    Every queryset for venue data must be filtered by the user's venue. Add tests for this.
 3. Security defaults on: CSRF, autoescaping, HTTPS settings, secure cookies, HSTS, CSP,
    ALLOWED_HOSTS. No csrf_exempt, no mark_safe on user input, no raw SQL without parameters.
+   Only exception: the Phase 2 payment webhook may be csrf_exempt, protected by signature checks
+   (docs/architecture.md 9.3).
 4. Rate-limit OTP requests, login and booking endpoints (Django does not throttle logins itself).
 5. Secrets only in environment variables, never in code or Git.
 6. No card data stored. Payments go through the gateway's hosted checkout; verify webhooks.
@@ -27,7 +29,19 @@ Tagline: "Book your court. Bring your team." Owners: two co-founders. Business d
 
 ## Code conventions
 - Apps: accounts, venues, pricing, bookings, teams, notifications, payments, reports, adminpanel.
-- Business logic in services.py, not in views or templates.
+  Shared helpers (phone normalisation, operating-day/time helpers, VenueOwnedQuerySet, domain
+  exceptions) live in `core`. payments and reports are created only in Phase 2.
+- Business logic in services.py, not in views or templates. Services own the transaction;
+  cross-app calls go through the other app's services.py. No signals for business logic.
+- Venue-side views get the venue only through venues.services.get_venue_for_user() (404 if not a
+  member) and query with .for_venue(venue). Form querysets are scoped to the venue too.
+- SMS only through the notifications outbox, written in the same transaction. Never call the SMS
+  gateway inside a request.
+- No inline JS/CSS and no CDNs: htmx and Leaflet are vendored; CSP with nonces; htmx allowEval off.
+- Never log OTP codes, tokens, session IDs or full phone numbers.
+- Tests always run on PostgreSQL, never SQLite.
+- Design docs in /docs (requirements, data-model, architecture) are the source of truth; update
+  them in the same change when a decision changes.
 - Every feature has tests (pytest + pytest-django). Booking engine and permissions need the most.
 - Small, focused commits with clear messages.
 
