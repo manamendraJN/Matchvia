@@ -1,0 +1,40 @@
+{% load static i18n %}<!doctype html>
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}Matchvia{% endblock %}</title>
+  <meta name="description" content="{% translate 'Book your court. Bring your team.' %}">
+  <meta name="theme-color" content="#15803d">
+  {# htmx: no eval (CSP has no unsafe-eval), no injected indicator styles (no unsafe-inline). #}
+  <meta name="htmx-config" content='{"allowEval":false,"includeIndicatorStyles":false}'>
+  <link rel="manifest" href="{% static 'manifest.webmanifest' %}">
+  <link rel="icon" type="image/png" sizes="192x192" href="{% static 'icons/icon-192.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'icons/icon-192.png' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}" nonce="{{ csp_nonce }}">
+  <script src="{% static 'vendor/htmx/htmx.min.js' %}" nonce="{{ csp_nonce }}" defer></script>
+  <script src="{% static 'js/app.js' %}" nonce="{{ csp_nonce }}" defer></script>
+  {% block head %}{% endblock %}
+</head>
+{# Every HTMX request carries the CSRF token (architecture 5.1). #}
+<body class="min-h-dvh flex flex-col bg-slate-50 text-slate-900 antialiased"
+      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2 focus:shadow">
+    {% translate "Skip to content" %}
+  </a>
+
+  <header class="sticky top-0 z-40 border-b border-slate-200 bg-white">
+    <div class="mx-auto flex h-14 w-full max-w-screen-sm items-center justify-between px-4">
+      <a href="{% url 'home' %}" class="text-lg font-bold tracking-tight text-green-700">Matchvia</a>
+      {% block header_actions %}{% endblock %}
+    </div>
+  </header>
+
+  <main id="main" class="mx-auto w-full max-w-screen-sm flex-1 px-4 py-6">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block bottom_nav %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,12 @@
+/*
+ * Tailwind CSS source. Built by the standalone CLI (no Node.js), see scripts/tailwind.py.
+ * Output: static/css/app.css (not committed; built locally, in CI and in the Docker image).
+ *
+ * This file lives outside static/ so collectstatic never sees the bare `@import "tailwindcss"`,
+ * which the manifest storage would try to resolve as a file.
+ */
+@import "tailwindcss" source(none);
+
+@source "../templates/**/*.html";
+@source "../*/templates/**/*.html";
+@source "../static/js/**/*.js";
