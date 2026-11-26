@@ -161,8 +161,8 @@ without a shared cache. The cost is one indexed query per OTP request, which is 
 | name | CharField(100) | |
 | slug | SlugField(60) | **UQ**. Public link `/v/<slug>` (US-O08) |
 | area | FK Area, PROTECT | **IX** via composite below |
-| address | CharField(255) | |
-| latitude / longitude | DecimalField(9,6) each | Map pin (Leaflet). **CK** within Sri Lanka's bounding box |
+| address | CharField(255), blank | Required before submitting for approval |
+| latitude / longitude | DecimalField(9,6) each, null | Map pin. Null until set; required before submitting. **CK** both null, or both set and within Sri Lanka's bounding box (lat 5.85–9.90, lng 79.50–82.00) |
 | phone | CharField(16) | Public venue number |
 | description | TextField, blank | |
 | facilities | ArrayField(CharField(30)), default [] | Codes such as `parking`, `changing_rooms`, `floodlights`, `cafe` |
@@ -175,6 +175,8 @@ without a shared cache. The cost is one indexed query per OTP request, which is 
 | created_at / updated_at | DateTimeField | |
 
 - **IX** `(area, status)` for search.
+- **CK** `status`, `facilities` (known codes only) and `phone` (Sri Lankan mobile) are also checked in the database. The location check spells out `IS NOT NULL`, because a NULL makes a range check "unknown", which PostgreSQL treats as passing.
+- Submitting for approval (draft or rejected → pending) needs an address, a map location, at least one active court and at least one open day (`venues.services.missing_for_submission`).
 - Only `approved` venues appear in search and take online bookings. All statuses can use the calendar
   (BR-22).
 - **Trade-off, `facilities` as ArrayField:** no join and easy to filter with a GIN index if needed. A

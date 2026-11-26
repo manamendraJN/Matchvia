@@ -713,3 +713,4 @@ in venue settings (US-O05) within the allowed range.
 | 26 Nov 2026 | MVP is pay-at-venue only with instant confirmation; no hold until online payment (Phase 2) | Founders |
 | 26 Nov 2026 | Proposal NFR-05 "Sinhala at launch" means before public launch (Phase 3); MVP in English with all text wrapped for translation | Founders |
 | 26 Nov 2026 | CLAUDE.md rule 1 updated: the overlap constraint also ignores `no_show` bookings | Founders |
+| 26 Nov 2026 | Build prompt C3 differed from this document; the documented rules were kept: blocks live in the bookings table (not a separate BlockedTime table), prices are normal + peak per slot per court with venue peak periods (BR-18, not hourly price rules), opening hours are per venue (BR-15), a court can support both sports (BR-29) and floodlights are a venue facility, venue approval is a status workflow (draft, pending, approved, rejected, suspended) | Founders |

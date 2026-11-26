@@ -70,12 +70,12 @@ changed) before the step that needs it.
 
 - [x] **S01** Project skeleton and local development · 1.5 d
 - [x] **S02** CI pipeline and production security settings · 1 d
-- [ ] **S03** Custom user model and `core` helpers · 1.5 d
+- [x] **S03** Custom user model and `core` helpers · 1.5 d
 
 ### Milestone 1: Riskiest core (about 21 days)
 
-- [ ] **S04** Venue, court, hours and settings models · 2 d
-- [ ] **S05** Venue permissions and isolation test framework · 2 d
+- [x] **S04** Venue, court, hours and settings models · 2 d
+- [x] **S05** Venue permissions and isolation test framework · 2 d
 - [ ] **S06** Booking table and the no-double-booking constraint · 2.5 d
 - [ ] **S07** Free-slot engine and pricing · 2.5 d
 - [ ] **S08** SMS outbox, worker and gateway adapter · 2 d
@@ -628,3 +628,9 @@ security.
 | S03 (part) | 26 Nov 2026 | | | Prompt C2: `User` model and first migration, `core/phone.py`, `core/exceptions.py`, `core/db.py`, factories. `core/timeutils.py` and `VenueOwnedQuerySet` still to do |
 | S08 (part) | 26 Nov 2026 | | | Prompt C2: `SmsMessage` outbox, console/locmem backends, Text.lk placeholder, `run_worker` with retries and OTP drop. Worker heartbeat, purge job and real Text.lk adapter still to do (C7) |
 | S10 (part) | 26 Nov 2026 | | | Prompt C2: OTP request/verify with all BR-27 limits, P4–P6, consent, sign-out, P18 account and P19 deletion (accounts part). OTP text encrypted in the outbox (data-model 3.6). Still to do: Turnstile (D5), per-role session lifetimes (D9), linking VenueCustomer rows at first sign-in (needs S04), deletion steps for venues/bookings/teams (S26) |
+| S03 (rest) | 26 Nov 2026 | 26 Nov 2026 | | Prompt C3: `core/timeutils.py` (operating day and minute) and `VenueOwnedQuerySet` |
+| S04 | 26 Nov 2026 | 26 Nov 2026 | | Prompt C3: all venue models and constraints, `create_venue()` defaults, launch areas. `VenueCustomer` moved to C4 (only useful with bookings) |
+| S05 | 26 Nov 2026 | 26 Nov 2026 | | Prompt C3: `get_venue_for_user()`, venue decorators, isolation tests for every `/manage/` URL plus the meta-test (proved by a test that adds an unregistered URL) |
+| S07 (part) | 26 Nov 2026 | | | Prompt C3: `pricing.services.price_for()` and `slot_prices()`. Free-slot engine comes with C4 |
+| S21/S24 (part) | 26 Nov 2026 | | | Prompt C3: create venue, profile, photos (Pillow re-encode, 5 MB, 6 max), courts, hours, prices and peak times, submit for approval; staff see them read-only. Wizard flow, Leaflet map pin, object storage (D7), booking-rules screen (V20) and staff screen (V24) still to do |
+| S25 (part) | 26 Nov 2026 | | | Prompt C3: area admin, venue review page with approve/reject/suspend/unsuspend and owner SMS. Booking lookup and access log still to do (C9) |
