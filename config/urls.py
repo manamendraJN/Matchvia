@@ -1,15 +1,30 @@
 from django.conf import settings
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
 from django.views.generic import TemplateView
 
+from accounts.services import PRIVACY_VERSION, TERMS_VERSION
 from core.views import healthz
 
 urlpatterns = [
     path("", TemplateView.as_view(template_name="home.html"), name="home"),
     path("healthz", healthz, name="healthz"),
-    # TODO(S03/S10, accounts branch): path("auth/", include("accounts.urls")) and
-    # path("me/", include("accounts.urls_me")) are added together with those modules.
+    path("auth/", include("accounts.urls")),
+    path("me/", include("accounts.urls_me")),
+    path(
+        "privacy/",
+        TemplateView.as_view(
+            template_name="pages/privacy.html", extra_context={"version": PRIVACY_VERSION}
+        ),
+        name="privacy",
+    ),
+    path(
+        "terms/",
+        TemplateView.as_view(
+            template_name="pages/terms.html", extra_context={"version": TERMS_VERSION}
+        ),
+        name="terms",
+    ),
     # Platform admin lives at a private, non-default path (architecture 2.4, D16).
     path(settings.ADMIN_URL_PATH, admin.site.urls),
 ]

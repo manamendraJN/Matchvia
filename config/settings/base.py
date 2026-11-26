@@ -75,8 +75,8 @@ TEMPLATES = [
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ---------------------------------------------------------------- users and sign-in
-# AUTH_USER_MODEL = "accounts.User" is added together with the model and its first
-# migration (S03). Nobody runs migrate on a shared database before then (data-model 3.1).
+# Phone-number user model from the first migration (data-model 3.1).
+AUTH_USER_MODEL = "accounts.User"
 LOGIN_URL = "accounts:phone"
 LOGIN_REDIRECT_URL = "/"
 # Players stay signed in for 30 days (D9); per-role lifetimes for venue users and admins follow.

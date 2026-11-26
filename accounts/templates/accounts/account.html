@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "Account" %} · Matchvia{% endblock %}
+
+{% block content %}
+  <section class="space-y-8">
+    <h1 class="text-2xl font-bold tracking-tight">{% translate "Account" %}</h1>
+
+    <div class="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
+      <div>
+        <p class="text-sm text-slate-500">{% translate "Mobile number" %}</p>
+        <p class="text-lg font-medium">{{ phone_display }}</p>
+      </div>
+
+      <form method="post" action="{% url 'me:account' %}" class="space-y-3" novalidate>
+        {% csrf_token %}
+        {% include "accounts/_form_errors.html" %}
+        {% include "accounts/_field.html" with field=form.name %}
+        <button type="submit" class="rounded-lg bg-green-700 px-4 py-2 font-semibold text-white hover:bg-green-800">
+          {% translate "Save name" %}
+        </button>
+      </form>
+    </div>
+
+    <form method="post" action="{% url 'accounts:logout' %}">
+      {% csrf_token %}
+      <button type="submit" class="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-800 hover:bg-slate-100">
+        {% translate "Sign out" %}
+      </button>
+    </form>
+
+    <div class="space-y-2 border-t border-slate-200 pt-6 text-sm">
+      <a href="{% url 'privacy' %}" class="block text-slate-600 hover:underline">{% translate "Privacy notice" %}</a>
+      <a href="{% url 'terms' %}" class="block text-slate-600 hover:underline">{% translate "Terms of use" %}</a>
+      <a href="{% url 'me:delete' %}" class="block font-medium text-red-700 hover:underline">{% translate "Delete my account" %}</a>
+    </div>
+  </section>
+{% endblock %}

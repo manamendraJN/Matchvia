@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "Account deleted" %} · Matchvia{% endblock %}
+
+{% block content %}
+  <section class="space-y-4 py-8 text-center">
+    <h1 class="text-2xl font-bold tracking-tight">{% translate "Your account has been deleted" %}</h1>
+    <p class="text-slate-600">{% translate "Your name and mobile number have been removed. Thank you for playing with Matchvia." %}</p>
+    <a href="{% url 'home' %}" class="inline-block rounded-lg bg-green-700 px-4 py-3 font-semibold text-white hover:bg-green-800">{% translate "Back to home" %}</a>
+  </section>
+{% endblock %}

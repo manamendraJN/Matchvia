@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "Delete account" %} · Matchvia{% endblock %}
+
+{% block content %}
+  <section class="space-y-6">
+    <h1 class="text-2xl font-bold tracking-tight">{% translate "Delete your account" %}</h1>
+
+    <div class="space-y-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+      <p class="font-semibold">{% translate "This can't be undone." %}</p>
+      <ul class="list-disc space-y-1 pl-5">
+        <li>{% translate "Your name and mobile number are removed from Matchvia straight away." %}</li>
+        <li>{% translate "Your upcoming bookings are cancelled and the venues are told." %}</li>
+        <li>{% translate "Venues keep anonymous records of past games (court, time, price) for their counts." %}</li>
+        <li>{% translate "You are signed out on every device." %}</li>
+      </ul>
+    </div>
+
+    <form method="post" action="{% url 'me:delete' %}" class="space-y-3">
+      {% csrf_token %}
+      <p class="text-sm text-slate-600">
+        {% blocktranslate with phone=phone_display %}To confirm, we'll send a code to {{ phone }}.{% endblocktranslate %}
+      </p>
+      <button type="submit" class="w-full rounded-lg bg-red-700 px-4 py-3 font-semibold text-white hover:bg-red-800">
+        {% translate "Send confirmation code" %}
+      </button>
+    </form>
+
+    <a href="{% url 'me:account' %}" class="block text-center text-sm text-slate-600 hover:underline">{% translate "Keep my account" %}</a>
+  </section>
+{% endblock %}

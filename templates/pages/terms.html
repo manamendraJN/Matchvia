@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "Terms of use" %} · Matchvia{% endblock %}
+
+{% block content %}
+  <article class="space-y-5 text-slate-800">
+    <p class="rounded-lg bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+      {% translate "DRAFT for legal review. Not final." %}
+    </p>
+    <h1 class="text-2xl font-bold tracking-tight">{% translate "Terms of use" %}</h1>
+    <p class="text-sm text-slate-500">{% blocktranslate %}Version {{ version }}{% endblocktranslate %}</p>
+
+    <section class="space-y-2">
+      <h2 class="text-lg font-semibold">{% translate "Bookings" %}</h2>
+      <p>{% translate "Matchvia shows live free slots and records your booking with the venue. You pay the venue directly. Each venue sets its own prices and cancellation window, shown before you confirm." %}</p>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-lg font-semibold">{% translate "Fair use" %}</h2>
+      <p>{% translate "Please cancel bookings you can't use, so others can play. Venues may stop accepting online bookings from players who repeatedly don't turn up." %}</p>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-lg font-semibold">{% translate "Your account" %}</h2>
+      <p>{% translate "Your account is tied to your mobile number. Never share your sign-in code with anyone, including people who say they are from Matchvia or a venue." %}</p>
+    </section>
+  </article>
+{% endblock %}
