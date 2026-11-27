@@ -176,6 +176,7 @@ REGISTRY = {
     ),
     "reopen_day": (lambda t: {}, lambda t: {"date": _tomorrow().isoformat()}),
     "rules": (lambda t: {}, lambda t: {"rule": "booking_horizon_days", "value": "60"}),
+    "more": (lambda t: {}, lambda t: {}),
 }
 # Who may use each URL on their own venue:
 #   "all"       owner and staff can open it (GET)
@@ -230,6 +231,7 @@ ACCESS = {
     "close_day": "all",
     "reopen_day": "all_post",
     "rules": "owner",
+    "more": "all",
 }
 
 

@@ -1,78 +1,96 @@
 {% extends "base.html" %}
-{% load i18n %}
-{# Shared frame for every venue dashboard page: venue name, status banner, section tabs. #}
+{% load i18n matchvia venue_nav %}
+{# Frame for every venue dashboard page (screens 3). Phones: bottom bar Calendar · + New ·  #}
+{# Requests · More. Laptops: a left-hand menu, and the calendar uses the extra width.        #}
 
 {% block title %}{{ venue.name }} · Matchvia{% endblock %}
+{% block header_width %}max-w-7xl{% endblock %}
+{% block main_width %}max-w-7xl{% endblock %}
+
+{% block header_actions %}
+  <a href="{% url 'manage:home' %}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+    {% icon "home" "size-4" %}<span class="hidden sm:inline">{% translate "My venues" %}</span>
+  </a>
+{% endblock %}
 
 {% block content %}
-  <div class="space-y-4">
-    <div class="flex items-start justify-between gap-3">
-      <div>
-        <a href="{% url 'manage:home' %}" class="text-sm text-slate-500 hover:underline">{% translate "My venues" %}</a>
-        <h1 class="text-xl font-bold tracking-tight">{{ venue.name }}</h1>
+  {% pending_requests venue as requests_waiting %}
+  <div class="lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8">
+    <aside class="hidden lg:block" aria-label="{% translate 'Venue sections' %}">
+      <div class="sticky top-24">
+        {% include "venues/_menu.html" %}
       </div>
-      <span class="shrink-0 rounded-full px-3 py-1 text-xs font-semibold {% if venue.status == 'approved' %}bg-green-100 text-green-800{% elif venue.status == 'rejected' or venue.status == 'suspended' %}bg-red-100 text-red-800{% else %}bg-amber-100 text-amber-900{% endif %}">
-        {{ venue.get_status_display }}
-      </span>
-    </div>
+    </aside>
 
-    {% if venue.status == "pending" %}
-      <p class="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
-        {% translate "Waiting for approval. You can already add walk-ins and phone bookings. Players can't book online yet." %}
-      </p>
-    {% elif venue.status == "draft" %}
-      <div class="space-y-3 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
-        <p>{% translate "Not live yet. Finish your venue details and submit it for approval." %}</p>
-        {% if can_edit %}<a href="{% url 'manage:setup' venue.pk %}" class="inline-block rounded-lg bg-green-700 px-4 py-2 font-semibold text-white hover:bg-green-800">{% translate "Continue setup" %}</a>{% endif %}
+    <div class="min-w-0 space-y-5">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-slate-500">{% translate "Venue dashboard" %}</p>
+          <h1 class="truncate text-2xl font-extrabold tracking-tight">{{ venue.name }}</h1>
+        </div>
+        <span class="shrink-0 {% if venue.status == 'approved' %}badge-green{% elif venue.status == 'rejected' or venue.status == 'suspended' %}badge-red{% else %}badge-amber{% endif %} px-3 py-1">
+          {% if venue.status == 'approved' %}{% icon "check" "size-3.5" %}{% else %}{% icon "info" "size-3.5" %}{% endif %}
+          {{ venue.get_status_display }}
+        </span>
       </div>
-    {% elif venue.status == "rejected" %}
-      <div class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-900" role="status">
-        <p class="font-semibold">{% translate "Not approved" %}</p>
-        <p>{{ venue.status_reason }}</p>
-        <p>{% translate "Fix the details and submit again." %}</p>
-      </div>
-    {% elif venue.status == "suspended" %}
-      <div class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-900" role="status">
-        <p class="font-semibold">{% translate "Suspended" %}</p>
-        <p>{{ venue.status_reason }}</p>
-        <p>{% translate "Players can't find or book your venue. Please contact Matchvia support." %}</p>
-      </div>
-    {% endif %}
 
-    <nav class="-mx-4 overflow-x-auto px-4" aria-label="{% translate 'Venue sections' %}">
-      <ul class="flex gap-2 text-sm font-medium">
-        {% url 'manage:dashboard' venue.pk as u_cal %}{% url 'manage:week' venue.pk as u_week %}{% url 'manage:block_new' venue.pk as u_block %}{% url 'manage:weekly' venue.pk as u_weekly %}{% url 'manage:customers' venue.pk as u_customers %}{% url 'manage:rules' venue.pk as u_rules %}{% url 'manage:profile' venue.pk as u_profile %}{% url 'manage:courts' venue.pk as u_courts %}{% url 'manage:hours' venue.pk as u_hours %}{% url 'manage:prices' venue.pk as u_prices %}{% url 'manage:staff' venue.pk as u_staff %}
-        <li><a href="{{ u_cal }}" class="block whitespace-nowrap rounded-full px-3 py-2 {% if request.path == u_cal %}bg-green-700 text-white{% else %}bg-white text-slate-700 ring-1 ring-slate-200{% endif %}">{% translate "Calendar" %}</a></li>
-        <li><a href="{{ u_week }}" class="block whitespace-nowrap rounded-full px-3 py-2 {% if request.path == u_week %}bg-green-700 text-white{% else %}bg-white text-slate-700 ring-1 ring-slate-200{% endif %}">{% translate "Week" %}</a></li>
-        <li><a href="{{ u_block }}" class="block whitespace-nowrap rounded-full px-3 py-2 {% if request.path == u_block %}bg-green-700 text-white{% else %}bg-white text-slate-700 ring-1 ring-slate-200{% endif %}">{% translate "Block time" %}</a></li>
-        <li><a href="{{ u_weekly }}" class="block whitespace-nowrap rounded-full px-3 py-2 {% if u_weekly in request.path %}bg-green-700 text-white{% else %}bg-white text-slate-700 ring-1 ring-slate-200{% endif %}">{% translate "Weekly" %}</a></li>
-        <li><a href="{{ u_customers }}" class="block whitespace-nowrap rounded-full px-3 py-2 {% if u_customers in request.path %}bg-green-700 text-white{% else %}bg-white text-slate-700 ring-1 ring-slate-200{% endif %}">{% translate "Customers" %}</a></li>
-        <li><a href="{{ u_profile }}" class="block whitespace-nowrap rounded-full px-3 py-2 {% if request.path == u_profile %}bg-green-700 text-white{% else %}bg-white text-slate-700 ring-1 ring-slate-200{% endif %}">{% translate "Venue" %}</a></li>
-        <li><a href="{{ u_courts }}" class="block whitespace-nowrap rounded-full px-3 py-2 {% if u_courts in request.path %}bg-green-700 text-white{% else %}bg-white text-slate-700 ring-1 ring-slate-200{% endif %}">{% translate "Courts" %}</a></li>
-        <li><a href="{{ u_hours }}" class="block whitespace-nowrap rounded-full px-3 py-2 {% if request.path == u_hours %}bg-green-700 text-white{% else %}bg-white text-slate-700 ring-1 ring-slate-200{% endif %}">{% translate "Hours" %}</a></li>
-        <li><a href="{{ u_prices }}" class="block whitespace-nowrap rounded-full px-3 py-2 {% if request.path == u_prices %}bg-green-700 text-white{% else %}bg-white text-slate-700 ring-1 ring-slate-200{% endif %}">{% translate "Prices" %}</a></li>
-        {% if can_edit %}<li><a href="{{ u_rules }}" class="block whitespace-nowrap rounded-full px-3 py-2 {% if request.path == u_rules %}bg-green-700 text-white{% else %}bg-white text-slate-700 ring-1 ring-slate-200{% endif %}">{% translate "Rules" %}</a></li>{% endif %}
-        {% if can_edit %}<li><a href="{{ u_staff }}" class="block whitespace-nowrap rounded-full px-3 py-2 {% if request.path == u_staff %}bg-green-700 text-white{% else %}bg-white text-slate-700 ring-1 ring-slate-200{% endif %}">{% translate "Staff" %}</a></li>{% endif %}
-      </ul>
-    </nav>
-
-    {% block staff_note %}
-      {% if not can_edit %}
-        <p class="rounded-lg bg-slate-100 px-4 py-2 text-sm text-slate-700">{% translate "You're staff at this venue. Only the owner can change these settings." %}</p>
+      {% if venue.status == "pending" %}
+        <div class="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
+          {% icon "clock" "mt-0.5 size-5 shrink-0" %}
+          <p>{% translate "Waiting for approval. You can already add walk-ins and phone bookings. Players can't book online yet." %}</p>
+        </div>
+      {% elif venue.status == "draft" %}
+        <div class="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between" role="status">
+          <p class="flex items-start gap-3">{% icon "info" "mt-0.5 size-5 shrink-0" %}{% translate "Not live yet. Finish your venue details and submit it for approval." %}</p>
+          {% if can_edit %}<a href="{% url 'manage:setup' venue.pk %}" class="btn-primary shrink-0">{% translate "Continue setup" %}</a>{% endif %}
+        </div>
+      {% elif venue.status == "rejected" %}
+        <div class="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900" role="status">
+          {% icon "alert" "mt-0.5 size-5 shrink-0" %}
+          <div>
+            <p class="font-semibold">{% translate "Not approved" %}</p>
+            <p>{{ venue.status_reason }}</p>
+            <p>{% translate "Fix the details and submit again." %}</p>
+          </div>
+        </div>
+      {% elif venue.status == "suspended" %}
+        <div class="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900" role="status">
+          {% icon "ban" "mt-0.5 size-5 shrink-0" %}
+          <div>
+            <p class="font-semibold">{% translate "Suspended" %}</p>
+            <p>{{ venue.status_reason }}</p>
+            <p>{% translate "Players can't find or book your venue. Please contact Matchvia support." %}</p>
+          </div>
+        </div>
       {% endif %}
-    {% endblock %}
 
-    {% block venue_content %}{% endblock %}
+      {% block staff_note %}
+        {% if not can_edit %}
+          <p class="flex items-start gap-3 rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-700">{% icon "info" "mt-0.5 size-5 shrink-0" %}{% translate "You're staff at this venue. Only the owner can change these settings." %}</p>
+        {% endif %}
+      {% endblock %}
+
+      {# Forms read best narrow; the calendar and week view use the full width. #}
+      <div class="{% block venue_width %}max-w-3xl{% endblock %}">
+        {% block venue_content %}{% endblock %}
+      </div>
+    </div>
   </div>
 {% endblock %}
 
 {% block bottom_nav %}
-  {# Venue dashboard navigation (screens 3): Calendar · + New · My venues. #}
-  <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white" aria-label="{% translate 'Venue' %}">
-    <ul class="mx-auto grid max-w-screen-sm grid-cols-3 text-center text-sm font-medium">
-      <li><a href="{% url 'manage:dashboard' venue.pk %}" class="block py-4 text-slate-700">{% translate "Calendar" %}</a></li>
-      <li><a href="{% url 'manage:booking_new' venue.pk %}" class="block py-4 font-semibold text-green-700">+ {% translate "New" %}</a></li>
-      <li><a href="{% url 'manage:home' %}" class="block py-4 text-slate-700">{% translate "My venues" %}</a></li>
+  {# Phones: Calendar · + New · Requests · More (screens 3). #}
+  {% pending_requests venue as requests_waiting %}
+  {% url 'manage:dashboard' venue.pk as u_cal %}{% url 'manage:booking_new' venue.pk as u_new %}{% url 'manage:weekly' venue.pk as u_weekly %}{% url 'manage:more' venue.pk as u_more %}
+  <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden" aria-label="{% translate 'Venue' %}">
+    <ul class="mx-auto grid max-w-xl grid-cols-4 text-center text-xs font-semibold">
+      <li><a href="{{ u_cal }}" class="flex min-h-14 flex-col items-center justify-center gap-1 py-2 {% if request.path == u_cal %}text-green-700{% else %}text-slate-600{% endif %}">{% icon "calendar" "size-6" %}{% translate "Calendar" %}</a></li>
+      <li><a href="{{ u_new }}" class="flex min-h-14 flex-col items-center justify-center gap-1 py-2 text-green-700"><span class="flex size-7 items-center justify-center rounded-full bg-green-700 text-white">{% icon "plus" "size-5" %}</span>{% translate "New" %}</a></li>
+      <li><a href="{{ u_weekly }}" class="relative flex min-h-14 flex-col items-center justify-center gap-1 py-2 {% if u_weekly in request.path %}text-green-700{% else %}text-slate-600{% endif %}">
+        <span class="relative">{% icon "inbox" "size-6" %}{% if requests_waiting %}<span class="absolute -top-1.5 -right-2.5 min-w-5 rounded-full bg-amber-500 px-1 text-[11px] leading-5 text-white">{{ requests_waiting }}</span>{% endif %}</span>
+        {% translate "Requests" %}{% if requests_waiting %}<span class="sr-only">: {{ requests_waiting }}</span>{% endif %}
+      </a></li>
+      <li><a href="{{ u_more }}" class="flex min-h-14 flex-col items-center justify-center gap-1 py-2 {% if request.path == u_more %}text-green-700{% else %}text-slate-600{% endif %}">{% icon "more" "size-6" %}{% translate "More" %}</a></li>
     </ul>
   </nav>
 {% endblock %}

@@ -6,7 +6,7 @@
 {% block venue_content %}
   <a href="{% url 'manage:weekly' venue.pk %}" class="text-sm text-slate-600 hover:underline">← {% translate "Weekly bookings" %}</a>
   <div class="space-y-1">
-    <h2 class="text-xl font-bold">🔁 {{ series.venue_customer.name }}</h2>
+    <h2 class="text-xl font-bold">{% icon "repeat" "inline size-4 shrink-0 align-[-0.15em] text-green-700" %} {{ series.venue_customer.name }}</h2>
     <p class="text-slate-700">{{ series.first_date|date:"l" }} {{ time }} · {{ series.court.name }} · {% blocktranslate with n=series.weeks %}{{ n }} weeks{% endblocktranslate %}</p>
     <p class="text-sm"><span class="rounded-full bg-slate-100 px-2 py-1 font-medium">{{ series.get_status_display }}</span> <span class="text-slate-600">{{ series.get_origin_display }}</span></p>
     {% if series.decision_reason %}<p class="text-sm text-slate-600">{{ series.decision_reason }}</p>{% endif %}

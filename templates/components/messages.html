@@ -1,0 +1,12 @@
+{% load matchvia %}
+{# Flash messages: colour + icon + words (screens 1.6). #}
+{% if messages %}
+  <ul class="mb-5 space-y-2" role="status">
+    {% for message in messages %}
+      <li class="flex items-start gap-3 rounded-xl border px-4 py-3 text-sm {% if message.level_tag == 'error' %}border-red-200 bg-red-50 text-red-900{% elif message.level_tag == 'warning' %}border-amber-200 bg-amber-50 text-amber-900{% elif message.level_tag == 'info' %}border-sky-200 bg-sky-50 text-sky-900{% else %}border-green-200 bg-green-50 text-green-900{% endif %}">
+        {% if message.level_tag == 'error' or message.level_tag == 'warning' %}{% icon "alert" "mt-0.5 size-5 shrink-0" %}{% elif message.level_tag == 'info' %}{% icon "info" "mt-0.5 size-5 shrink-0" %}{% else %}{% icon "check-circle" "mt-0.5 size-5 shrink-0" %}{% endif %}
+        <span>{{ message }}</span>
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}

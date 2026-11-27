@@ -1,0 +1,37 @@
+{% load i18n matchvia %}
+{# Every venue section, used by the laptop sidebar and the phone "More" page (screens 3). #}
+{% url 'manage:dashboard' venue.pk as u_cal %}{% url 'manage:week' venue.pk as u_week %}{% url 'manage:booking_new' venue.pk as u_new %}{% url 'manage:block_new' venue.pk as u_block %}{% url 'manage:weekly' venue.pk as u_weekly %}{% url 'manage:customers' venue.pk as u_customers %}{% url 'manage:profile' venue.pk as u_profile %}{% url 'manage:courts' venue.pk as u_courts %}{% url 'manage:hours' venue.pk as u_hours %}{% url 'manage:prices' venue.pk as u_prices %}{% url 'manage:rules' venue.pk as u_rules %}{% url 'manage:staff' venue.pk as u_staff %}
+{% with item="flex min-h-12 items-center gap-3 rounded-xl px-3 py-2 font-semibold transition-colors duration-150" on="bg-green-50 text-green-800" off="text-slate-700 hover:bg-slate-100" %}
+<div class="space-y-6">
+  <div class="space-y-1">
+    <p class="px-3 text-xs font-semibold text-slate-500">{% translate "Daily work" %}</p>
+    <ul class="space-y-0.5">
+      <li><a href="{{ u_cal }}" class="{{ item }} {% if request.path == u_cal %}{{ on }}{% else %}{{ off }}{% endif %}">{% icon "calendar" %}{% translate "Calendar" %}</a></li>
+      <li><a href="{{ u_week }}" class="{{ item }} {% if request.path == u_week %}{{ on }}{% else %}{{ off }}{% endif %}">{% icon "grid" %}{% translate "Week" %}</a></li>
+      <li><a href="{{ u_new }}" class="{{ item }} {% if request.path == u_new %}{{ on }}{% else %}{{ off }}{% endif %}">{% icon "plus" %}{% translate "New booking" %}</a></li>
+      <li><a href="{{ u_block }}" class="{{ item }} {% if request.path == u_block %}{{ on }}{% else %}{{ off }}{% endif %}">{% icon "ban" %}{% translate "Block time" %}</a></li>
+      <li><a href="{{ u_weekly }}" class="{{ item }} {% if u_weekly in request.path %}{{ on }}{% else %}{{ off }}{% endif %}">{% icon "repeat" %}<span class="flex-1">{% translate "Weekly and requests" %}</span>{% if requests_waiting %}<span class="badge-amber">{{ requests_waiting }}</span>{% endif %}</a></li>
+      <li><a href="{{ u_customers }}" class="{{ item }} {% if u_customers in request.path %}{{ on }}{% else %}{{ off }}{% endif %}">{% icon "users" %}{% translate "Customers" %}</a></li>
+    </ul>
+  </div>
+  <div class="space-y-1">
+    <p class="px-3 text-xs font-semibold text-slate-500">{% translate "Your venue" %}</p>
+    <ul class="space-y-0.5">
+      <li><a href="{{ u_profile }}" class="{{ item }} {% if request.path == u_profile %}{{ on }}{% else %}{{ off }}{% endif %}">{% icon "home" %}{% translate "Venue profile" %}</a></li>
+      <li><a href="{{ u_courts }}" class="{{ item }} {% if u_courts in request.path %}{{ on }}{% else %}{{ off }}{% endif %}">{% icon "grid" %}{% translate "Courts" %}</a></li>
+      <li><a href="{{ u_hours }}" class="{{ item }} {% if request.path == u_hours %}{{ on }}{% else %}{{ off }}{% endif %}">{% icon "clock" %}{% translate "Opening hours" %}</a></li>
+      <li><a href="{{ u_prices }}" class="{{ item }} {% if request.path == u_prices %}{{ on }}{% else %}{{ off }}{% endif %}">{% icon "banknote" %}{% translate "Prices" %}</a></li>
+      {% if can_edit %}
+        <li><a href="{{ u_rules }}" class="{{ item }} {% if request.path == u_rules %}{{ on }}{% else %}{{ off }}{% endif %}">{% icon "sliders" %}{% translate "Booking rules" %}</a></li>
+        <li><a href="{{ u_staff }}" class="{{ item }} {% if request.path == u_staff %}{{ on }}{% else %}{{ off }}{% endif %}">{% icon "user-plus" %}{% translate "Staff" %}</a></li>
+      {% endif %}
+    </ul>
+  </div>
+  <div class="space-y-1 border-t border-slate-200 pt-4">
+    <ul class="space-y-0.5">
+      <li><a href="{% url 'manage:home' %}" class="{{ item }} {{ off }}">{% icon "arrow-left" %}{% translate "Switch venue" %}</a></li>
+      <li><a href="{% url 'home' %}" class="{{ item }} {{ off }}">{% icon "search" %}{% translate "Back to player view" %}</a></li>
+    </ul>
+  </div>
+</div>
+{% endwith %}

@@ -31,6 +31,10 @@ OUTSIDE_SRI_LANKA = {
     "min_value": _("The pin is outside Sri Lanka."),
     "max_value": _("The pin is outside Sri Lanka."),
 }
+FILE_INPUT_CLASS = (
+    "block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-green-50 file:px-4 "
+    "file:py-2 file:font-semibold file:text-green-800 hover:file:bg-green-100"
+)
 OPENS_CHOICES = minute_choices(DAY_START_MINUTE, DAY_END_MINUTE - 30)
 CLOSES_CHOICES = minute_choices(DAY_START_MINUTE + 30, DAY_END_MINUTE)
 
@@ -149,7 +153,10 @@ class ImageUploadForm(forms.Form):
     image = forms.FileField(
         label=_("Photo"),
         widget=forms.ClearableFileInput(
-            attrs={"accept": "image/jpeg,image/png,image/webp", "class": "block w-full text-sm"}
+            attrs={
+                "accept": "image/jpeg,image/png,image/webp",
+                "class": FILE_INPUT_CLASS,
+            }
         ),
     )
 

@@ -7,7 +7,7 @@
   <section class="space-y-5">
     <a href="{% url 'my_bookings' %}" class="text-sm text-slate-600 hover:underline">← {% translate "My bookings" %}</a>
     <div class="space-y-1">
-      <h1 class="text-2xl font-bold tracking-tight">🔁 {{ rule }}</h1>
+      <h1 class="text-2xl font-bold tracking-tight">{% icon "repeat" "inline size-4 shrink-0 align-[-0.15em] text-green-700" %} {{ rule }}</h1>
       <p class="text-slate-600">{{ series.venue.name }} · {{ series.court.name }}{% if series.team %} · {{ series.team.name }}{% endif %}</p>
     </div>
 

@@ -58,7 +58,7 @@
       </button>
     </form>
     {% if teams %}
-      <a href="{{ weekly_url }}" class="block text-center font-medium text-green-700 underline">🔁 {% translate "Ask for this time every week" %}</a>
+      <a href="{{ weekly_url }}" class="block text-center font-medium text-green-700 underline">{% icon "repeat" "inline size-4 shrink-0 align-[-0.15em] text-green-700" %} {% translate "Ask for this time every week" %}</a>
     {% endif %}
   </section>
 {% endblock %}

@@ -62,6 +62,8 @@ ignore = ["RUF012", "RUF001", "RUF002", "RUF003"]
 "conftest.py" = ["S101"]
 # Settings modules layer on top of base.py with star imports by design.
 "config/settings/*.py" = ["F403", "F405"]
+# SVG path data: long strings of numbers, not code.
+"core/icons.py" = ["E501"]
 
 # ---------------------------------------------------------------- pytest
 # Test discovery covers tests/ and every app's tests/ package.

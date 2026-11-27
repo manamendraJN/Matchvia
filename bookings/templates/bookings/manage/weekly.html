@@ -13,7 +13,7 @@
       {% for s, time in rows %}
         <li>
           <a href="{% url 'manage:series_detail' venue.pk s.pk %}" class="block rounded-xl border border-slate-200 bg-white p-3 hover:bg-slate-50">
-            <span class="block font-semibold">🔁 {{ s.venue_customer.name }}{% if s.team %} · {{ s.team.name }}{% endif %}{% if s.status == "pending" %} <span class="rounded-full bg-amber-100 px-2 py-1 text-xs text-amber-900">{% translate "Request" %}</span>{% endif %}</span>
+            <span class="block font-semibold">{% icon "repeat" "inline size-4 shrink-0 align-[-0.15em] text-green-700" %} {{ s.venue_customer.name }}{% if s.team %} · {{ s.team.name }}{% endif %}{% if s.status == "pending" %} <span class="rounded-full bg-amber-100 px-2 py-1 text-xs text-amber-900">{% translate "Request" %}</span>{% endif %}</span>
             <span class="block text-sm text-slate-600">{{ s.first_date|date:"l" }} {{ time }} · {{ s.court.name }} · {{ s.get_status_display }}</span>
           </a>
         </li>

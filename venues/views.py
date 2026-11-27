@@ -392,6 +392,16 @@ def prices(request, venue):
     return render(request, "venues/prices.html", context)
 
 
+# ---------------------------------------------------------------- More (phone menu, screens 3)
+
+
+@members_only
+@require_http_methods(["GET"])
+def more(request, venue):
+    """Every venue section on one page, for the phone bottom bar's "More"."""
+    return render(request, "venues/more.html", _context(venue))
+
+
 # ---------------------------------------------------------------- booking rules (V20)
 
 

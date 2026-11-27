@@ -121,6 +121,7 @@ urlpatterns = [
     path("<int:venue_id>/hours/", views.hours, name="hours"),
     path("<int:venue_id>/prices/", views.prices, name="prices"),
     # Staff (owner only)
+    path("<int:venue_id>/more/", views.more, name="more"),
     path("<int:venue_id>/rules/", views.rules, name="rules"),
     path("<int:venue_id>/staff/", views.staff, name="staff"),
     path(

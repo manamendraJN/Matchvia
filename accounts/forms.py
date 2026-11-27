@@ -6,10 +6,7 @@ from core.phone import INVALID_PHONE_MESSAGE, InvalidPhone, normalise_phone
 
 from . import services
 
-_INPUT = (
-    "block w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-lg "
-    "focus:border-green-700 focus:outline-none focus:ring-2 focus:ring-green-700/30"
-)
+_INPUT = "input text-lg"  # assets/tailwind.css @utility input
 
 
 class PhoneForm(forms.Form):
@@ -75,7 +72,7 @@ class ProfileForm(_NameMixin, forms.Form):
     accept = forms.BooleanField(
         label=_("I agree to the privacy notice and terms of use"),
         error_messages={"required": _("Please accept the privacy notice and terms to continue.")},
-        widget=forms.CheckboxInput(attrs={"class": "mt-1 size-5 accent-green-700"}),
+        widget=forms.CheckboxInput(attrs={"class": "checkbox mt-1"}),
     )
 
 

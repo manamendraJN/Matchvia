@@ -1,18 +1,25 @@
-{# One form field with label, help text and errors. Usage: {% include "components/field.html" with field=form.name %} #}
-<div class="space-y-1">
-  {% if field.widget_type == "checkboxselectmultiple" %}
+{% load matchvia %}
+{# One form field: label above, hint below, error in words with an icon (screens 1.2). #}
+{# Usage: {% include "components/field.html" with field=form.name %} #}
+<div class="space-y-1.5">
+  {% if field.widget_type == "checkboxselectmultiple" or field.widget_type == "radioselect" %}
     <fieldset>
-      <legend class="block text-sm font-medium text-slate-700">{{ field.label }}</legend>
-      <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 [&_label]:flex [&_label]:items-center [&_label]:gap-3 [&_label]:rounded-lg [&_label]:border [&_label]:border-slate-200 [&_label]:bg-white [&_label]:px-3 [&_label]:py-3 [&_input]:size-5 [&_input]:accent-green-700">
-        {% for choice in field %}{{ choice.tag }}{% endfor %}
+      <legend class="block text-sm font-semibold text-slate-800">{{ field.label }}</legend>
+      <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {% for choice in field %}
+          <label for="{{ choice.id_for_label }}" class="choice">
+            {{ choice.tag }}
+            <span class="text-base text-slate-800">{{ choice.choice_label }}</span>
+          </label>
+        {% endfor %}
       </div>
     </fieldset>
   {% else %}
-    <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-slate-700">{{ field.label }}</label>
+    <label for="{{ field.id_for_label }}" class="block text-sm font-semibold text-slate-800">{{ field.label }}</label>
     {{ field }}
   {% endif %}
-  {% if field.help_text %}<p class="text-sm text-slate-500">{{ field.help_text }}</p>{% endif %}
+  {% if field.help_text %}<p class="text-sm text-slate-600">{{ field.help_text }}</p>{% endif %}
   {% for error in field.errors %}
-    <p class="text-sm text-red-700">{{ error }}</p>
+    <p class="flex items-start gap-1.5 text-sm font-medium text-red-700">{% icon "alert" "mt-0.5 size-4 shrink-0" %}<span>{{ error }}</span></p>
   {% endfor %}
 </div>

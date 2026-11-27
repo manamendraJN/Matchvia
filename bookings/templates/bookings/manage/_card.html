@@ -12,7 +12,7 @@
     <span class="block font-semibold">{% translate "Blocked" %}</span>
     <span class="block">{{ b.get_block_reason_display }}</span>
   {% else %}
-    <span class="block truncate font-semibold">{% if b.series_id %}🔁 {% endif %}{% if b.checked_in_at %}✓ {% endif %}{{ b.customer_name|default:"—" }}</span>
+    <span class="block truncate font-semibold">{% if b.series_id %}{% icon "repeat" "inline size-4 shrink-0 align-[-0.15em]" %}<span class="sr-only">{% translate "Weekly:" %}</span> {% endif %}{% if b.checked_in_at %}{% icon "check" "inline size-4 shrink-0 align-[-0.15em]" %}<span class="sr-only">{% translate "Arrived:" %}</span> {% endif %}{{ b.customer_name|default:"—" }}</span>
     <span class="block">{% if b.status == "no_show" %}{% translate "No-show" %}{% elif b.status == "cancelled" %}{% translate "Cancelled" %}{% else %}{{ b.get_source_display }}{% endif %}</span>
   {% endif %}
 </a>

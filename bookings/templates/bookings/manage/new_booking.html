@@ -68,7 +68,7 @@
         {% include "components/field.html" with field=form.price_lkr %}
         {% include "components/field.html" with field=form.price_change_reason %}
         {% include "components/field.html" with field=form.notes %}
-        <a href="{% url 'manage:weekly_new' venue.pk %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="block font-medium text-green-700 underline">🔁 {% translate "Repeat weekly" %}</a>
+        <a href="{% url 'manage:weekly_new' venue.pk %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="block font-medium text-green-700 underline">{% icon "repeat" "inline size-4 shrink-0 align-[-0.15em] text-green-700" %} {% translate "Repeat weekly" %}</a>
       </div>
     </details>
 

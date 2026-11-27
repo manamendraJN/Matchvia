@@ -12,7 +12,7 @@
     <p class="text-sm">
       <span class="rounded-full bg-slate-100 px-2 py-1 font-medium">{% if booking.is_completed %}{% translate "Played" %}{% else %}{{ booking.get_status_display }}{% endif %}</span>
       <span class="ml-1 text-slate-600">{{ booking.get_source_display }} · {{ booking.display_reference }}</span>
-      {% if booking.checked_in_at %}<span class="ml-1 font-medium text-green-800">✓ {% blocktranslate with t=booking.checked_in_at|time12 %}Arrived {{ t }}{% endblocktranslate %}</span>{% endif %}
+      {% if booking.checked_in_at %}<span class="ml-1 font-medium text-green-800">{% icon "check" "inline size-4 shrink-0 align-[-0.15em]" %} {% blocktranslate with t=booking.checked_in_at|time12 %}Arrived {{ t }}{% endblocktranslate %}</span>{% endif %}
     </p>
   </div>
 
@@ -24,7 +24,7 @@
   {% endif %}
 
   {% if booking.series_id %}
-    <a href="{% url 'manage:series_detail' venue.pk booking.series_id %}" class="block rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium">🔁 {% translate "Part of a weekly booking" %}</a>
+    <a href="{% url 'manage:series_detail' venue.pk booking.series_id %}" class="block rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium">{% icon "repeat" "inline size-4 shrink-0 align-[-0.15em] text-green-700" %} {% translate "Part of a weekly booking" %}</a>
   {% endif %}
 
   <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 rounded-xl border border-slate-200 bg-white p-4 text-sm">
@@ -49,7 +49,7 @@
     {% if can_arrive %}
       <form method="post" action="{% url 'manage:booking_arrived' venue.pk booking.pk %}">
         {% csrf_token %}
-        <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 font-semibold text-white">{% translate "Arrived ✓" %}</button>
+        <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 font-semibold text-white">{% icon "check" "size-5" %}{% translate "Arrived" %}</button>
       </form>
     {% endif %}
     {% if is_future %}

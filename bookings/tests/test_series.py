@@ -354,7 +354,7 @@ def test_calendar_and_details_mark_series_bookings(staff_client, venue, court, c
     calendar = staff_client.get(
         reverse("manage:dashboard", args=[venue.pk]), {"date": "2026-12-08"}
     ).content.decode()
-    assert "🔁 Malabe Strikers" in calendar
+    assert '<span class="sr-only">Weekly:</span> Malabe Strikers' in calendar  # repeat icon
     detail = staff_client.get(
         reverse("manage:booking_detail", args=[venue.pk, created[0].pk])
     ).content.decode()

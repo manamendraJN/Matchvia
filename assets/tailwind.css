@@ -4,9 +4,160 @@
  *
  * This file lives outside static/ so collectstatic never sees the bare `@import "tailwindcss"`,
  * which the manifest storage would try to resolve as a file.
+ *
+ * Design rules: docs/screens.md section 1 (system fonts only, 48 px targets, colour always with
+ * text or an icon, body line height 1.6 for Sinhala later).
  */
 @import "tailwindcss" source(none);
 
 @source "../templates/**/*.html";
 @source "../*/templates/**/*.html";
 @source "../static/js/**/*.js";
+/* Widget classes set in Python (form fields, icons). */
+@source "../core/*.py";
+@source "../*/forms.py";
+@source "../*/forms_manage.py";
+
+@theme {
+  /* System fonts only (screens 1.3): Roboto on Android, Segoe UI on Windows, SF on Apple. */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Sinhala",
+    "Helvetica Neue", Arial, sans-serif;
+
+  /* Booking sources and states (screens 1.6), always shown with a label or icon too. */
+  --color-online: var(--color-blue-700);
+  --color-online-soft: var(--color-blue-50);
+  --color-phone: var(--color-purple-700);
+  --color-phone-soft: var(--color-purple-50);
+  --color-walkin: var(--color-amber-800);
+  --color-walkin-soft: var(--color-amber-50);
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    line-height: 1.6;
+  }
+
+  h1,
+  h2,
+  h3 {
+    line-height: 1.25;
+    text-wrap: balance;
+  }
+
+  /* One clear focus ring for keyboard users everywhere (WCAG 2.4.7). */
+  :focus-visible {
+    outline: 3px solid var(--color-green-600);
+    outline-offset: 2px;
+  }
+
+  a,
+  button,
+  summary,
+  select,
+  label:has(input),
+  [role="button"] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ---- buttons: at least 48 px tall (screens 1.2) ---- */
+@utility btn {
+  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 py-3 text-base font-semibold transition-colors duration-150 disabled:opacity-60;
+}
+@utility btn-primary {
+  @apply btn bg-green-700 text-white shadow-sm hover:bg-green-800 active:bg-green-900;
+}
+@utility btn-secondary {
+  @apply btn border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 active:bg-slate-100;
+}
+@utility btn-outline {
+  @apply btn border border-green-700 bg-white text-green-800 hover:bg-green-50 active:bg-green-100;
+}
+@utility btn-danger {
+  @apply btn bg-red-700 text-white shadow-sm hover:bg-red-800 active:bg-red-900;
+}
+@utility btn-dark {
+  @apply btn bg-slate-800 text-white shadow-sm hover:bg-slate-900;
+}
+@utility btn-block {
+  @apply w-full;
+}
+@utility btn-lg {
+  @apply min-h-14 text-lg;
+}
+@utility link {
+  @apply font-medium text-green-700 underline decoration-green-700/40 underline-offset-4 hover:decoration-green-700;
+}
+
+/* ---- surfaces ---- */
+@utility card {
+  @apply rounded-2xl border border-slate-200 bg-white p-4 shadow-sm;
+}
+@utility card-link {
+  @apply card block transition-colors duration-150 hover:border-green-300 hover:bg-green-50/40;
+}
+@utility page-title {
+  @apply text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl;
+}
+@utility section-title {
+  @apply text-lg font-bold tracking-tight text-slate-900;
+}
+@utility muted {
+  @apply text-slate-600;
+}
+
+/* ---- form fields ---- */
+@utility input {
+  @apply block min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base text-slate-900 shadow-sm transition-colors duration-150 placeholder:text-slate-400 focus:border-green-700 focus:ring-2 focus:ring-green-700/25 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500 aria-invalid:border-red-600;
+}
+@utility checkbox {
+  @apply size-5 shrink-0 accent-green-700;
+}
+@utility choice {
+  @apply flex min-h-12 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 transition-colors duration-150 hover:border-green-300 has-checked:border-green-700 has-checked:bg-green-50;
+}
+
+/* ---- labels that carry meaning: colour + text (screens 1.6) ---- */
+@utility badge {
+  @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold;
+}
+@utility badge-green {
+  @apply badge bg-green-100 text-green-800;
+}
+@utility badge-amber {
+  @apply badge bg-amber-100 text-amber-900;
+}
+@utility badge-red {
+  @apply badge bg-red-100 text-red-800;
+}
+@utility badge-slate {
+  @apply badge bg-slate-100 text-slate-700;
+}
+
+/* ---- time chips: 48 px tall, free = white with green border (screens 1.6) ---- */
+@utility chip {
+  @apply inline-flex min-h-12 flex-col items-center justify-center rounded-xl border-2 border-green-600 bg-white px-3 py-1 text-center font-semibold text-green-900 tabular-nums transition-colors duration-150 hover:bg-green-50;
+}
+@utility chip-off {
+  @apply inline-flex min-h-12 flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-1 text-center text-sm text-slate-500 tabular-nums;
+}

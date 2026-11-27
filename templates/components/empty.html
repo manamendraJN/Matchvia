@@ -1,0 +1,7 @@
+{% load matchvia %}
+{# Empty state: icon, one line, optional action. Usage: include with icon="calendar" text=... url=... action=... #}
+<div class="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
+  <span class="flex size-12 items-center justify-center rounded-full bg-green-50 text-green-700">{% icon icon|default:"info" "size-6" %}</span>
+  <p class="max-w-xs text-slate-600">{{ text }}</p>
+  {% if url %}<a href="{{ url }}" class="btn-primary">{{ action }}</a>{% endif %}
+</div>
