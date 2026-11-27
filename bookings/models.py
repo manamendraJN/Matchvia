@@ -92,6 +92,14 @@ class Booking(models.Model):
         blank=True,
         related_name="bookings",
     )
+    # The weekly series this booking is one week of (data-model 5). Each week is a normal booking.
+    series = models.ForeignKey(
+        "RecurringSeries",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="bookings",
+    )
     # Snapshot shown on the calendar; walk-ins without a phone have only this.
     customer_name = models.CharField(max_length=80, blank=True)
     price_lkr = models.PositiveIntegerField(default=0)  # stored at booking time
@@ -129,6 +137,7 @@ class Booking(models.Model):
             models.Index(fields=["venue", "operating_date"], name="booking_venue_day_idx"),
             models.Index(fields=["court", "operating_date"], name="booking_court_day_idx"),
             models.Index(fields=["venue_customer", "start_at"], name="booking_customer_idx"),
+            models.Index(fields=["series"], name="booking_series_idx"),
             models.Index(
                 fields=["hold_expires_at"],
                 condition=Q(status="held"),
@@ -216,6 +225,99 @@ class Booking(models.Model):
     def is_completed(self) -> bool:
         """'Completed' is derived, not stored: confirmed and already over (requirements 3)."""
         return self.status == Status.CONFIRMED and self.end_at <= timezone.now()
+
+
+class SeriesOrigin(models.TextChoices):
+    CAPTAIN_REQUEST = "captain_request", _("Captain's request")
+    STAFF = "staff", _("Entered by staff")
+
+
+class SeriesStatus(models.TextChoices):
+    PENDING = "pending", _("Waiting for the venue")
+    APPROVED = "approved", _("Approved")
+    REJECTED = "rejected", _("Rejected")
+    EXPIRED = "expired", _("Expired")
+    CANCELLED = "cancelled", _("Cancelled")
+
+
+class RecurringSeries(models.Model):
+    """A weekly booking rule (data-model 5). Approving it creates one normal Booking per week.
+
+    The rule is stored as local wall-clock time (weekday of the operating day + operating
+    minute), so "Tuesday 8 pm" keeps its meaning. A pending request reserves nothing.
+    """
+
+    venue = models.ForeignKey(
+        "venues.Venue", on_delete=models.PROTECT, related_name="weekly_series"
+    )
+    court = models.ForeignKey(
+        "venues.Court", on_delete=models.PROTECT, related_name="weekly_series"
+    )
+    origin = models.CharField(max_length=16, choices=SeriesOrigin.choices)
+    status = models.CharField(max_length=10, choices=SeriesStatus.choices)
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    # Who the bookings are for.
+    venue_customer = models.ForeignKey(
+        "venues.VenueCustomer", on_delete=models.PROTECT, related_name="weekly_series"
+    )
+    weekday = models.PositiveSmallIntegerField()  # of the operating day, 0 = Monday
+    start_minute = models.PositiveSmallIntegerField()  # operating minute (data-model 1.2)
+    duration_minutes = models.PositiveSmallIntegerField()
+    first_date = models.DateField()
+    weeks = models.PositiveSmallIntegerField()
+    request_expires_at = models.DateTimeField(null=True, blank=True)  # captain requests: 48 h
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    decided_at = models.DateTimeField(null=True, blank=True)
+    decision_reason = models.CharField(max_length=255, blank=True)
+    # [{"date": "2026-12-29", "reason": "booked"}], written when the weeks are created.
+    skipped = models.JSONField(default=list, blank=True)
+    cancelled_from = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now, editable=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    objects = VenueOwnedQuerySet.as_manager()
+
+    class Meta:
+        verbose_name = _("weekly booking")
+        verbose_name_plural = _("weekly bookings")
+        indexes = [
+            models.Index(fields=["venue", "status"], name="series_venue_status_idx"),
+            models.Index(
+                fields=["request_expires_at"],
+                condition=Q(status="pending"),
+                name="series_request_expiry_idx",
+            ),
+        ]
+        constraints = [
+            # Target for the composite foreign key from bookings (data-model 6.3).
+            models.UniqueConstraint(fields=["id", "venue"], name="series_id_venue_unique"),
+            models.CheckConstraint(
+                condition=Q(origin__in=SeriesOrigin.values), name="series_origin_valid"
+            ),
+            models.CheckConstraint(
+                condition=Q(status__in=SeriesStatus.values), name="series_status_valid"
+            ),
+            models.CheckConstraint(condition=Q(weekday__lte=6), name="series_weekday_valid"),
+            models.CheckConstraint(
+                condition=Q(start_minute__gte=180, start_minute__lte=1619),
+                name="series_start_valid",
+            ),
+            models.CheckConstraint(
+                condition=Q(duration_minutes__gt=0)
+                & Q(duration_minutes__lte=1620 - F("start_minute")),
+                name="series_duration_valid",
+            ),
+            models.CheckConstraint(
+                condition=Q(weeks__gte=2, weeks__lte=12), name="series_weeks_valid"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"Weekly #{self.pk}"
 
 
 class EventAction(models.TextChoices):

@@ -18,6 +18,11 @@ TYPICAL = {
     "price": "Rs. 12,000",
     "venue_phone": "077 123 4567",
     "reason": "The photos don't show a sports venue.",
+    "weekday": "Tue",
+    "time": "11:00 pm",
+    "booked": 12,
+    "first": "12 Dec",
+    "skipped": "22 Dec, 29 Dec, 5 Jan +2",
 }
 
 
@@ -34,6 +39,8 @@ def test_every_template_is_tested():
         "venue_rejected",
         "venue_suspended",
         "venue_unsuspended",
+        "series_summary",
+        "series_cancelled",
     }
 
 

@@ -1,0 +1,1 @@
+{% load i18n %}{% autoescape off %}{# SMS text: plain characters only, aim for one 160-character SMS. #}{% blocktranslate trimmed %}Matchvia: Your weekly booking at {{ venue }} ({{ weekday }} {{ time }}) is cancelled from {{ first }}.{% endblocktranslate %}{% endautoescape %}

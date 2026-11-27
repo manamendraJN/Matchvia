@@ -11,16 +11,18 @@ The availability checks before that exist only to give clearer messages.
 
 import logging
 import uuid
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta
 
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
-from django.utils import timezone
+from django.utils import dateformat, timezone
 from django.utils.translation import gettext as _
 
 from core.exceptions import NotAllowed, RuleViolation, SlotTaken
+from core.formatting import format_date, format_time
 from core.phone import INVALID_PHONE_MESSAGE, InvalidPhone, format_local, normalise_phone
-from core.timeutils import operating_date, operating_minute
+from core.timeutils import at_operating_minute, operating_date, operating_minute
 from notifications import services as notifications
 from pricing import services as pricing
 from venues import services as venue_services
@@ -34,6 +36,9 @@ from .models import (
     CancelReason,
     EventAction,
     Kind,
+    RecurringSeries,
+    SeriesOrigin,
+    SeriesStatus,
     Source,
     Status,
 )
@@ -251,6 +256,7 @@ def create_online_booking(
                 source=Source.ONLINE,
                 status=Status.CONFIRMED,
                 start_at__gt=now,
+                series__isnull=True,  # approved weekly series don't count (BR-12)
             )
             .count()
         )
@@ -678,3 +684,308 @@ def mark_arrived(*, venue, actor, booking_id, now: datetime | None = None) -> Bo
             booking.save(update_fields=["checked_in_at", "checked_in_by", "updated_at"])
             _event(booking, actor, EventAction.ARRIVED)
     return booking
+
+
+# ---------------------------------------------------------------- weekly series (data-model 5)
+
+MIN_SERIES_WEEKS = 2
+MAX_SKIPPED_IN_SMS = 3
+
+
+@dataclass(frozen=True)
+class WeekPlan:
+    """One week of a series as previewed: free, or skipped with a reason (V16, V17)."""
+
+    day: date
+    start: datetime
+    end: datetime
+    reason: str = ""  # "", "booked", "blocked", "closed", "outside_hours", "too_soon"
+
+    @property
+    def ok(self) -> bool:
+        return not self.reason
+
+
+SKIP_LABELS = {
+    "booked": _("already booked"),
+    "blocked": _("blocked"),
+    "closed": _("closed"),
+    "outside_hours": _("outside opening hours"),
+    "too_soon": _("too soon"),
+}
+
+
+def plan_weeks(
+    court: Court,
+    *,
+    first_date: date,
+    start_minute: int,
+    duration_minutes: int,
+    weeks: int,
+    for_staff: bool,
+    now: datetime | None = None,
+) -> list[WeekPlan]:
+    """Which weeks are free (data-model 5.2). Read-only; recalculated every time it's shown.
+
+    Weeks clash with bookings and blocks (including closed days), closed weekdays, opening
+    hours, and the past (staff) or the minimum notice (captain requests).
+    """
+    now = _now(now)
+    start0 = at_operating_minute(first_date, start_minute)
+    _whole_slots(court, start0, start0 + timedelta(minutes=duration_minutes))
+    hours = (
+        OpeningHours.objects.for_venue(court.venue_id).filter(weekday=first_date.weekday()).first()
+    )
+    earliest = (
+        now if for_staff else now + timedelta(minutes=court.venue.settings.min_notice_minutes)
+    )
+    days = [first_date + timedelta(weeks=k) for k in range(weeks)]
+    starts = [at_operating_minute(d, start_minute) for d in days]
+    length = timedelta(minutes=duration_minutes)
+    taken = list(
+        Booking.objects.filter(
+            court=court,
+            status__in=ACTIVE_STATUSES,
+            start_at__lt=starts[-1] + length,
+            end_at__gt=starts[0],
+        ).values_list("start_at", "end_at", "kind")
+    )
+    plans = []
+    for day, start in zip(days, starts, strict=True):
+        end = start + length
+        clash = [kind for s, e, kind in taken if s < end and e > start]
+        if hours is None or hours.is_closed:
+            reason = "closed"
+        elif (
+            start_minute < hours.opens_minute
+            or start_minute + duration_minutes > hours.closes_minute
+        ):
+            reason = "outside_hours"
+        elif start < earliest:
+            reason = "too_soon"
+        elif clash:
+            reason = "blocked" if all(k == Kind.BLOCK for k in clash) else "booked"
+        else:
+            reason = ""
+        plans.append(WeekPlan(day=day, start=start, end=end, reason=reason))
+    return plans
+
+
+def _check_weeks(venue, weeks: int) -> None:
+    limit = venue.settings.recurring_max_weeks
+    if not MIN_SERIES_WEEKS <= weeks <= limit:
+        raise RuleViolation(
+            _("Choose between %(min)d and %(max)d weeks.") % {"min": MIN_SERIES_WEEKS, "max": limit}
+        )
+
+
+def _expand(series: RecurringSeries, *, actor, source: str, now: datetime, for_staff: bool) -> list:
+    """Create one confirmed booking per free week (data-model 5.2 step 3).
+
+    Each week is inserted in its own savepoint: if the overlap constraint fires for a week that
+    looked free a moment ago, only that week is skipped. Prices are today's (US-C04).
+    """
+    court = series.court
+    plans = plan_weeks(
+        court,
+        first_date=series.first_date,
+        start_minute=series.start_minute,
+        duration_minutes=series.duration_minutes,
+        weeks=series.weeks,
+        for_staff=for_staff,
+        now=now,
+    )
+    created, skipped = [], []
+    customer = series.venue_customer
+    for plan in plans:
+        if not plan.ok:
+            skipped.append({"date": plan.day.isoformat(), "reason": plan.reason})
+            continue
+        booking = Booking(
+            venue=series.venue,
+            court=court,
+            kind=Kind.BOOKING,
+            status=Status.CONFIRMED,
+            source=source,
+            start_at=plan.start,
+            end_at=plan.end,
+            operating_date=plan.day,
+            venue_customer=customer,
+            customer_name=customer.name,
+            price_lkr=pricing.price_for(court, plan.start, plan.end),
+            series=series,
+            created_by=actor,
+        )
+        try:
+            _save_checked(booking, insert=True)
+        except SlotTaken:
+            skipped.append({"date": plan.day.isoformat(), "reason": "booked"})
+            continue
+        _event(booking, actor, EventAction.CREATED, **_snapshot(booking), series=series.pk)
+        notifications.schedule_reminder(booking, now=now)
+        created.append(booking)
+    series.skipped = skipped
+    series.save(update_fields=["skipped", "updated_at"])
+    return created
+
+
+def series_summary_sms(series: RecurringSeries, booked: int) -> None:
+    """One SMS for the whole series, not one per week (US-C04, US-S08)."""
+    phone = series.venue_customer.phone
+    if not phone:
+        return
+    skipped_days = [date.fromisoformat(s["date"]) for s in series.skipped]
+    skipped_text = ", ".join(
+        format_date(d).split(" ", 1)[1] for d in skipped_days[:MAX_SKIPPED_IN_SMS]
+    )
+    if len(skipped_days) > MAX_SKIPPED_IN_SMS:
+        skipped_text += f" +{len(skipped_days) - MAX_SKIPPED_IN_SMS}"
+    start = at_operating_minute(series.first_date, series.start_minute)
+    notifications.queue_sms(
+        to_phone=phone,
+        purpose="series_summary",
+        body=notifications.render_sms(
+            "series_summary",
+            venue=series.venue.name,
+            court=series.court.name,
+            weekday=dateformat.format(series.first_date, "D"),
+            time=format_time(start),
+            booked=booked,
+            first=format_date(series.first_date).split(" ", 1)[1],
+            skipped=skipped_text,
+        ),
+        venue=series.venue,
+    )
+
+
+def create_staff_series(
+    *,
+    venue,
+    actor,
+    court_id,
+    first_date: date,
+    start_minute: int,
+    duration_minutes: int,
+    weeks: int,
+    customer_name: str,
+    customer_phone: str,
+    now: datetime | None = None,
+) -> tuple[RecurringSeries, list[Booking]]:
+    """A regular team's weekly slot entered by staff: no approval step (US-S08).
+
+    Clashing weeks are skipped and recorded; if every week clashes nothing is created.
+    """
+    now = _now(now)
+    _require_member(venue, actor)
+    court = Court.objects.for_venue(venue).get(pk=court_id)
+    if not court.is_active:
+        raise RuleViolation(_("This court is deactivated."))
+    name = _clean_name(customer_name)
+    try:
+        phone = normalise_phone(customer_phone or "")
+    except InvalidPhone:
+        raise RuleViolation(_("Add a phone number so we can send the schedule.")) from None
+    _check_weeks(venue, weeks)
+    plans = plan_weeks(
+        court,
+        first_date=first_date,
+        start_minute=start_minute,
+        duration_minutes=duration_minutes,
+        weeks=weeks,
+        for_staff=True,
+        now=now,
+    )
+    if not any(p.ok for p in plans):
+        raise RuleViolation(_("All weeks clash. Choose another time."))
+
+    with transaction.atomic():
+        customer = _customer_for(venue, phone=phone, name=name)
+        series = RecurringSeries.objects.create(
+            venue=venue,
+            court=court,
+            origin=SeriesOrigin.STAFF,
+            status=SeriesStatus.APPROVED,
+            requested_by=actor,
+            venue_customer=customer,
+            weekday=first_date.weekday(),
+            start_minute=start_minute,
+            duration_minutes=duration_minutes,
+            first_date=first_date,
+            weeks=weeks,
+            decided_by=actor,
+            decided_at=now,
+        )
+        created = _expand(series, actor=actor, source=Source.PHONE, now=now, for_staff=True)
+        if not created:
+            raise RuleViolation(_("All weeks clash. Choose another time."))
+        series_summary_sms(series, len(created))
+    logger.info("series.created id=%s venue=%s weeks=%s", series.pk, venue.pk, len(created))
+    return series, created
+
+
+def _cancel_series_bookings(series, *, actor, reason, now, window: timedelta | None):
+    """Cancel future weeks; with ``window`` (captain), weeks already inside it stay booked."""
+    cancelled, kept = [], []
+    future = (
+        Booking.objects.filter(series=series, status=Status.CONFIRMED, start_at__gt=now)
+        .select_for_update()
+        .order_by("start_at")
+    )
+    for booking in future:
+        if window is not None and booking.start_at - now <= window:
+            kept.append(booking)
+            continue
+        _cancel(booking, actor=actor, reason=reason, late=False, now=now)
+        cancelled.append(booking)
+    series.status = SeriesStatus.CANCELLED
+    series.cancelled_from = operating_date(now)
+    series.save(update_fields=["status", "cancelled_from", "updated_at"])
+    if cancelled and series.venue_customer.phone:
+        start = at_operating_minute(series.first_date, series.start_minute)
+        notifications.queue_sms(
+            to_phone=series.venue_customer.phone,
+            purpose="series_decision",
+            body=notifications.render_sms(
+                "series_cancelled",
+                venue=series.venue.name,
+                weekday=dateformat.format(series.first_date, "D"),
+                time=format_time(start),
+                first=format_date(cancelled[0].operating_date).split(" ", 1)[1],
+            ),
+            venue=series.venue,
+        )
+    return cancelled, kept
+
+
+def cancel_series_by_staff(*, venue, actor, series_id, reason: str, now: datetime | None = None):
+    """Staff cancel every future week, any time, with a reason (US-S08, BR-09)."""
+    now = _now(now)
+    _require_member(venue, actor)
+    if reason not in CancelReason.values:
+        raise RuleViolation(_("Choose a reason for cancelling."))
+    with transaction.atomic():
+        series = RecurringSeries.objects.for_venue(venue).select_for_update().get(pk=series_id)
+        if series.status != SeriesStatus.APPROVED:
+            raise RuleViolation(_("This weekly booking is not active."))
+        return _cancel_series_bookings(series, actor=actor, reason=reason, now=now, window=None)
+
+
+def cancel_series_by_player(*, user, series_id, now: datetime | None = None):
+    """The captain cancels the rest of the series (US-C05, BR-14).
+
+    Weeks outside the cancellation window are cancelled; weeks already inside it stay booked
+    and are returned so the captain can be told to call the venue.
+    """
+    now = _now(now)
+    with transaction.atomic():
+        series = (
+            RecurringSeries.objects.select_for_update(of=("self",))
+            .select_related("venue__settings", "venue_customer")
+            .get(pk=series_id, venue_customer__user=user)
+        )
+        if series.status != SeriesStatus.APPROVED:
+            raise RuleViolation(_("This weekly booking is not active."))
+        window = timedelta(hours=series.venue.settings.cancellation_window_hours)
+        return _cancel_series_bookings(
+            series, actor=user, reason=CancelReason.CUSTOMER_REQUEST, now=now, window=window
+        )
