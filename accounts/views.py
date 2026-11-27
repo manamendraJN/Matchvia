@@ -5,6 +5,7 @@ Views stay thin: parse the request, call a service, render. Screens: P4-P6, P18,
 
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
@@ -16,6 +17,7 @@ from django.utils.translation import ngettext
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST
 
+from core import turnstile
 from core.exceptions import NotAllowed, RateLimited, RuleViolation
 from core.phone import format_local
 from core.ratelimit import client_ip
@@ -92,6 +94,10 @@ def phone_view(request):
     status = 200
     if request.method == "POST" and form.is_valid():
         phone = form.cleaned_data["phone"]
+        if not turnstile.verify(request.POST.get(turnstile.FIELD, ""), client_ip(request)):
+            form.add_error(None, _("Please confirm you're not a robot, then try again."))
+            context = {"form": form, "next": next_url, "turnstile_site_key": _site_key()}
+            return render(request, "accounts/phone.html", context, status=400)
         try:
             services.request_code(
                 phone=phone, purpose=OTPChallenge.Purpose.LOGIN, ip=client_ip(request)
@@ -104,7 +110,12 @@ def phone_view(request):
             request.session[SESSION_PHONE] = phone
             request.session[SESSION_NEXT] = next_url
             return redirect("accounts:code")
-    return render(request, "accounts/phone.html", {"form": form, "next": next_url}, status=status)
+    context = {"form": form, "next": next_url, "turnstile_site_key": _site_key()}
+    return render(request, "accounts/phone.html", context, status=status)
+
+
+def _site_key() -> str:
+    return settings.TURNSTILE_SITE_KEY if turnstile.enabled() else ""
 
 
 @never_cache

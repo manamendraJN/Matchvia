@@ -1,0 +1,16 @@
+{% load i18n static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% translate "Something went wrong" %} · Matchvia</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <main class="mx-auto max-w-screen-sm space-y-6 px-4 py-16 text-center">
+    <p class="text-xl font-bold text-green-800">Matchvia</p>
+    <h1 class="text-2xl font-bold tracking-tight">{% translate "Something went wrong on our side. Please try again." %}</h1>
+    <a href="/" class="inline-block rounded-lg bg-green-700 px-6 py-3 text-lg font-semibold text-white hover:bg-green-800">{% translate "Search" %}</a>
+  </main>
+</body>
+</html>

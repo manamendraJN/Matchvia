@@ -15,6 +15,8 @@ ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]"]
 # from your laptop, set SMS_BACKEND, SMS_API_KEY, SMS_SENDER_ID and SMS_ALLOWED_NUMBERS in .env.
 SMS_BACKEND = optional("SMS_BACKEND", "notifications.backends.console.ConsoleBackend")
 SMS_API_KEY = optional("SMS_API_KEY")
+TURNSTILE_SITE_KEY = optional("TURNSTILE_SITE_KEY")
+TURNSTILE_SECRET_KEY = optional("TURNSTILE_SECRET_KEY")
 SMS_SENDER_ID = optional("SMS_SENDER_ID")
 SMS_ALLOWED_NUMBERS = phone_list("SMS_ALLOWED_NUMBERS")
 

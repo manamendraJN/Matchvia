@@ -3,6 +3,10 @@
 
 {% block title %}{% translate "Sign in" %} · Matchvia{% endblock %}
 
+{% block head %}
+  {% if turnstile_site_key %}<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" nonce="{{ csp_nonce }}" async defer></script>{% endif %}
+{% endblock %}
+
 {% block content %}
   <section class="space-y-6">
     <div class="space-y-1">
@@ -15,6 +19,7 @@
       {% include "components/form_errors.html" %}
       {% include "components/field.html" with field=form.phone %}
       {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+      {% if turnstile_site_key %}<div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-size="flexible"></div>{% endif %}
       <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white hover:bg-green-800">
         {% translate "Send code" %}
       </button>

@@ -32,3 +32,10 @@ document.addEventListener("submit", (event) => {
     setTimeout(() => { button.disabled = true; }, 0);
   });
 });
+
+// Offline page for the installed app (screens 1.3). Pages still always come from the network.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}

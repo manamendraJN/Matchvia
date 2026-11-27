@@ -3,6 +3,7 @@ import logging
 from django.conf import settings
 from django.db import DatabaseError, connection
 from django.http import JsonResponse
+from django.shortcuts import render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
 
@@ -38,3 +39,16 @@ def healthz(request):
         {"status": "ok" if healthy else "error", **checks},
         status=200 if healthy else 503,
     )
+
+
+@require_GET
+def service_worker(request):
+    """The service worker must be served from the site root to cover every page (scope "/")."""
+    response = render(request, "sw.js", content_type="application/javascript")
+    response["Cache-Control"] = "no-cache"
+    return response
+
+
+@require_GET
+def offline(request):
+    return render(request, "offline.html")

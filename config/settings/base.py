@@ -50,6 +50,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "core.middleware.RateLimitedMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -139,7 +140,9 @@ STORAGES = {
 # img-src gains the photo storage domain (S21) and OpenStreetMap tiles (S13) later.
 SECURE_CSP = {
     "default-src": [CSP.SELF],
-    "script-src": [CSP.SELF, CSP.NONCE],
+    # Cloudflare Turnstile (D5) is the one outside script, on the sign-in page.
+    "script-src": [CSP.SELF, CSP.NONCE, "https://challenges.cloudflare.com"],
+    "frame-src": ["https://challenges.cloudflare.com"],
     "style-src": [CSP.SELF, CSP.NONCE],
     # OpenStreetMap tiles for the venue map pin (architecture 5 A03, 10).
     "img-src": [CSP.SELF, "https://tile.openstreetmap.org"],
@@ -170,6 +173,10 @@ SITE_URL = "http://localhost:8000"
 # Text.lk (D4). Key and sender ID come from the environment only (CLAUDE.md rule 5).
 SMS_API_URL = "https://app.text.lk/api/v3/sms/send"
 SMS_API_KEY = ""
+# Cloudflare Turnstile on the sign-in form (D5). Empty secret = check off (laptop and tests only).
+TURNSTILE_SITE_KEY = ""
+# Empty means the check is off; it is not a password.
+TURNSTILE_SECRET_KEY = ""  # nosec B105
 SMS_SENDER_ID = ""
 # When not empty, SMS go only to these numbers (+94...). Staging sets it (architecture 6.4).
 SMS_ALLOWED_NUMBERS: list[str] = []

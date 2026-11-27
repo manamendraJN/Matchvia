@@ -72,6 +72,9 @@ jobs:
           ALLOWED_HOSTS: matchvia.lk
           CSRF_TRUSTED_ORIGINS: https://matchvia.lk
           ADMIN_URL_PATH: ops-ci-check/
+          # Cloudflare's public Turnstile test keys (always pass), not real secrets.
+          TURNSTILE_SITE_KEY: 1x00000000000000000000AA
+          TURNSTILE_SECRET_KEY: 1x0000000000000000000000000000000AA
           DATABASE_URL: postgres://matchvia:ci-only-password@localhost:5432/matchvia?sslmode=disable
         run: uv run python manage.py check --deploy --fail-level WARNING
 

@@ -20,6 +20,8 @@ OTP_HMAC_KEY = required("OTP_HMAC_KEY")
 # without SMS_API_KEY and SMS_SENDER_ID, so a misconfigured worker fails loudly.
 SMS_BACKEND = required("SMS_BACKEND")
 SMS_API_KEY = optional("SMS_API_KEY")
+TURNSTILE_SITE_KEY = required("TURNSTILE_SITE_KEY")  # D5: always on in production
+TURNSTILE_SECRET_KEY = required("TURNSTILE_SECRET_KEY")
 SMS_SENDER_ID = optional("SMS_SENDER_ID")
 SMS_ALLOWED_NUMBERS = phone_list("SMS_ALLOWED_NUMBERS")  # set on staging only
 HEALTHZ_CHECK_WORKER = True

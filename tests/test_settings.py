@@ -23,6 +23,8 @@ PROD_ENV = {
     "ALLOWED_HOSTS": "matchvia.lk, www.matchvia.lk",
     "CSRF_TRUSTED_ORIGINS": "https://matchvia.lk,https://www.matchvia.lk",
     "ADMIN_URL_PATH": "/ops-test123/",
+    "TURNSTILE_SITE_KEY": "1x00000000000000000000AA",
+    "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA",
 }
 REQUIRED_IN_PROD = [
     "SECRET_KEY",
@@ -32,6 +34,8 @@ REQUIRED_IN_PROD = [
     "ALLOWED_HOSTS",
     "CSRF_TRUSTED_ORIGINS",
     "ADMIN_URL_PATH",
+    "TURNSTILE_SITE_KEY",
+    "TURNSTILE_SECRET_KEY",
 ]
 
 
