@@ -55,11 +55,81 @@ def test_create_venue_sets_up_all_defaults(owner):
     assert (membership.user, membership.role) == (owner, MemberRole.OWNER)
 
 
-def test_slugs_stay_unique(owner):
-    first = services.create_venue(owner=owner, name="Arena X", area=area(), phone=owner.phone)
-    second = services.create_venue(owner=owner, name="Arena X", area=area(), phone=owner.phone)
-    third = services.create_venue(owner=owner, name="!!!", area=area(), phone=owner.phone)
+def test_slugs_stay_unique():
+    """The same name is allowed in another area; the web address still differs."""
+
+    def new(name, slug):
+        owner = UserFactory()
+        return services.create_venue(owner=owner, name=name, area=area(slug), phone=owner.phone)
+
+    first, second, third = new("Arena X", "malabe"), new("Arena X", "kotte"), new("!!!", "malabe")
     assert (first.slug, second.slug, third.slug) == ("arena-x", "arena-x-2", "venue")
+
+
+# ---------------------------------------------------------------- no duplicate venues
+
+
+def test_one_venue_in_setup_at_a_time(owner):
+    first = services.create_venue(owner=owner, name="Arena X", area=area(), phone=owner.phone)
+    with pytest.raises(RuleViolation, match=r"Finish setting up Arena X first\."):
+        services.create_venue(owner=owner, name="Arena Y", area=area(), phone=owner.phone)
+    assert services.draft_venue_of(owner) == first
+
+    Venue.objects.filter(pk=first.pk).update(status=VenueStatus.PENDING)  # submitted
+    second = services.create_venue(owner=owner, name="Arena Y", area=area(), phone=owner.phone)
+    assert services.draft_venue_of(owner) == second
+
+
+@pytest.mark.parametrize("typed", ["Arena X", "arena x", "  ARENA   X "])
+def test_same_name_in_the_same_area_is_refused(owner, typed):
+    services.create_venue(owner=owner, name="Arena X", area=area(), phone=owner.phone)
+    other = UserFactory()
+    with pytest.raises(
+        RuleViolation, match=r"A venue called Arena X is already listed in Malabe\."
+    ):
+        services.create_venue(owner=other, name=typed, area=area(), phone=other.phone)
+    assert Venue.objects.count() == 1
+
+
+def test_a_rejected_venue_does_not_block_its_name(owner):
+    first = services.create_venue(owner=owner, name="Arena X", area=area(), phone=owner.phone)
+    Venue.objects.filter(pk=first.pk).update(status=VenueStatus.REJECTED)
+    other = UserFactory()
+    services.create_venue(owner=other, name="Arena X", area=area(), phone=other.phone)
+    assert Venue.objects.filter(name="Arena X").count() == 2
+
+
+def test_renaming_to_a_taken_name_is_refused(owner):
+    services.create_venue(owner=owner, name="Arena X", area=area(), phone=owner.phone)
+    other = UserFactory()
+    venue = services.create_venue(owner=other, name="Arena Y", area=area(), phone=other.phone)
+    with pytest.raises(RuleViolation, match="already listed"):
+        services.update_profile(venue, other, name="arena x")
+    venue.refresh_from_db()
+    assert venue.name == "Arena Y"
+    services.update_profile(venue, other, name="  Arena   Y  ")  # its own name is fine
+    venue.refresh_from_db()
+    assert venue.name == "Arena Y"
+
+
+def test_the_database_refuses_duplicates_too(owner):
+    """Even if two requests pass the check at the same moment, the constraint stops one."""
+    from django.db import IntegrityError, transaction
+
+    services.create_venue(owner=owner, name="Arena X", area=area(), phone=owner.phone)
+    with pytest.raises(IntegrityError, match="venue_name_unique_in_area"), transaction.atomic():
+        Venue.objects.create(name="ARENA X", slug="arena-x-copy", area=area(), phone=owner.phone)
+
+
+def test_race_on_create_shows_the_friendly_message(owner, monkeypatch):
+    services.create_venue(owner=owner, name="Arena X", area=area(), phone=owner.phone)
+    monkeypatch.setattr(services, "_check_name_free", lambda *a, **k: None)  # both passed the check
+    other = UserFactory()
+    with pytest.raises(RuleViolation, match="already listed"):
+        services.create_venue(owner=other, name="Arena X", area=area(), phone=other.phone)
+    venue = services.create_venue(owner=other, name="Arena Z", area=area(), phone=other.phone)
+    with pytest.raises(RuleViolation, match="already listed"):
+        services.update_profile(venue, other, name="Arena X")
 
 
 # ---------------------------------------------------------------- get_venue_for_user

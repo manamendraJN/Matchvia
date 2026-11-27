@@ -410,7 +410,9 @@ Progress shown as "Step 2 of 6 · Location" (text, not just dots).
   (Futsal / Indoor cricket, both allowed); **Next**.
 - **Actions:** Next → V2 (venue created as draft).
 - **Empty / error:** missing fields → message under each field; area not listed → "Don't see your
-  area? Contact us" (WhatsApp link).
+  area? Contact us" (WhatsApp link); name already used in that area → "A venue called Arena X is
+  already listed in Malabe."; the owner already has a venue in setup → that venue's setup opens with
+  "Finish setting up Arena X first." (one venue in setup at a time).
 
 #### V2 Location and photos · US-O01
 

@@ -11,7 +11,8 @@ from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.indexes import GinIndex
 from django.db import models
-from django.db.models import Q
+from django.db.models import F, Q
+from django.db.models.functions import Lower
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -139,6 +140,14 @@ class Venue(models.Model):
             ),
             models.CheckConstraint(
                 condition=Q(setup_step__gte=1, setup_step__lte=5), name="venue_setup_step_valid"
+            ),
+            # No two venues with the same name in one area (case ignored); a rejected venue
+            # doesn't block listing it again. Names are space-normalised by the services.
+            models.UniqueConstraint(
+                Lower("name"),
+                F("area"),
+                condition=~Q(status="rejected"),
+                name="venue_name_unique_in_area",
             ),
             models.CheckConstraint(
                 condition=Q(phone__regex=r"^\+947[0-9]{8}$"), name="venue_phone_lk_mobile"

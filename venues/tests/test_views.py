@@ -388,3 +388,54 @@ def test_staff_see_hours_and_prices_without_save(client, venue, staff, court):
     client.force_login(staff)
     assert b"Save hours" not in client.get(url("hours", venue)).content
     assert b"Save prices" not in client.get(url("prices", venue)).content
+
+
+# ---------------------------------------------------------------- no duplicate venues
+
+
+def new_venue(name):
+    return {"name": name, "area": area().pk, "phone": "0779998888"}
+
+
+def test_list_my_venue_goes_back_to_the_draft(owner_client, owner):
+    owner_client.post(
+        reverse("manage:create"),
+        {"name": "Kick Off Arena", "area": area().pk, "phone": "0779998888"},
+    )
+    draft = Venue.objects.get(name="Kick Off Arena")
+
+    # A second tap, the back button, or opening List my venue again: no second venue.
+    again = owner_client.post(
+        reverse("manage:create"),
+        {"name": "Kick Off Arena", "area": area().pk, "phone": "0779998888"},
+    )
+    assert again.url == url("setup", draft)
+    page = owner_client.get(reverse("manage:create"), follow=True)
+    assert "Finish setting up Kick Off Arena first." in page.content.decode()
+    assert Venue.objects.count() == 1
+
+
+def test_create_page_shows_a_taken_name(owner_client):
+    from .factories import make_venue
+
+    make_venue(name="Kick Off Arena")  # someone else's venue in Malabe
+    response = owner_client.post(
+        reverse("manage:create"),
+        {"name": "kick off arena", "area": area().pk, "phone": "0779998888"},
+    )
+    assert response.status_code == 200
+    assert "A venue called Kick Off Arena is already listed in Malabe." in response.content.decode()
+    assert "data-disable-on-submit" in response.content.decode()
+    assert Venue.objects.count() == 1
+
+
+def test_setup_details_shows_a_taken_name(owner_client, venue):
+    from .factories import make_venue
+
+    make_venue(name="Taken Arena")
+    response = owner_client.post(
+        url("setup_details", venue),
+        {"name": "Taken Arena", "area": area().pk, "phone": "0771112222"},
+    )
+    assert response.status_code == 200
+    assert "already listed in Malabe" in response.content.decode()

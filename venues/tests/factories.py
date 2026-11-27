@@ -1,4 +1,5 @@
 import io
+import itertools
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from PIL import Image
@@ -13,8 +14,13 @@ def area(slug="malabe"):
     return Area.objects.get_or_create(slug=slug, defaults={"name": slug.title()})[0]
 
 
-def make_venue(owner=None, name="Arena X", area_slug="malabe", **profile):
+_venue_numbers = itertools.count(1)
+
+
+def make_venue(owner=None, name=None, area_slug="malabe", **profile):
+    """A draft venue. Names are unique by default (one name per area, see services)."""
     owner = owner or UserFactory()
+    name = name or f"Arena {next(_venue_numbers)}"
     venue = services.create_venue(owner=owner, name=name, area=area(area_slug), phone=owner.phone)
     if profile:
         services.update_profile(venue, owner, **profile)

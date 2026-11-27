@@ -87,12 +87,20 @@ def home(request):
 @profile_required
 @require_http_methods(["GET", "POST"])
 def create(request):
+    draft = services.draft_venue_of(request.user)
+    if draft is not None:  # one venue in setup at a time: finish that one first
+        messages.info(request, _("Finish setting up %(venue)s first.") % {"venue": draft.name})
+        return redirect("manage:setup", venue_id=draft.pk)
     form = VenueCreateForm(
         request.POST or None, initial={"phone": format_local(request.user.phone)}
     )
     if request.method == "POST" and form.is_valid():
-        venue = services.create_venue(owner=request.user, **form.cleaned_data)
-        return redirect("manage:setup_location", venue_id=venue.pk)
+        try:
+            venue = services.create_venue(owner=request.user, **form.cleaned_data)
+        except RuleViolation as exc:
+            form.add_error("name", exc.message)
+        else:
+            return redirect("manage:setup_location", venue_id=venue.pk)
     return render(request, "venues/create.html", {"form": form, "step": 1, "steps": STEPS})
 
 
@@ -471,8 +479,12 @@ def setup_details(request, venue):
     initial = {"name": venue.name, "area": venue.area_id, "phone": format_local(venue.phone)}
     form = VenueDetailsForm(request.POST or None, initial=initial)
     if request.method == "POST" and form.is_valid():
-        services.update_profile(venue, request.user, **form.cleaned_data)
-        return _next_step(request, venue, 1)
+        try:
+            services.update_profile(venue, request.user, **form.cleaned_data)
+        except RuleViolation as exc:
+            form.add_error("name", exc.message)
+        else:
+            return _next_step(request, venue, 1)
     return render(request, "venues/setup/details.html", _setup(venue, 1, form=form))
 
 

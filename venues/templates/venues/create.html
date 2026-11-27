@@ -19,7 +19,7 @@
       {% include "components/field.html" with field=form.area %}
       {% include "components/field.html" with field=form.phone %}
       <p class="text-sm text-slate-500">{% translate "Don't see your area? Contact Matchvia and we'll add it." %}</p>
-      <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white hover:bg-green-800">
+      <button type="submit" data-disable-on-submit class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white hover:bg-green-800">
         {% translate "Next" %}
       </button>
     </form>

@@ -9,13 +9,14 @@ import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Count, Exists, OuterRef, Subquery
 from django.http import Http404
 from django.utils import timezone
 from django.utils.text import slugify
 from django.utils.translation import gettext as _
 
+from core.db import advisory_xact_lock
 from core.exceptions import NotAllowed, RuleViolation
 from notifications import services as notifications
 from pricing import services as pricing
@@ -170,15 +171,70 @@ def _unique_slug(name: str) -> str:
     return slug
 
 
+NAME_TAKEN_CONSTRAINT = "venue_name_unique_in_area"
+
+
+def clean_venue_name(name: str) -> str:
+    return " ".join((name or "").split())
+
+
+def _name_taken(name: str, area) -> RuleViolation:
+    return RuleViolation(
+        _("A venue called %(name)s is already listed in %(area)s.")
+        % {"name": name, "area": area.name if area else ""}
+    )
+
+
+def _check_name_free(name: str, area, exclude_pk=None) -> None:
+    """No two venues with the same name in one area (rejected ones don't count). The database
+    enforces it too (NAME_TAKEN_CONSTRAINT); this gives the friendly message first."""
+    clash = Venue.objects.filter(name__iexact=name, area=area).exclude(status=VenueStatus.REJECTED)
+    if exclude_pk is not None:
+        clash = clash.exclude(pk=exclude_pk)
+    existing = clash.first()
+    if existing is not None:
+        raise _name_taken(existing.name, area)
+
+
+def _is_name_clash(exc: IntegrityError) -> bool:
+    return NAME_TAKEN_CONSTRAINT in str(exc)
+
+
+def draft_venue_of(user) -> Venue | None:
+    """The venue this owner is still setting up, if any (one draft at a time)."""
+    return (
+        Venue.objects.filter(
+            status=VenueStatus.DRAFT, memberships__user=user, memberships__role=MemberRole.OWNER
+        )
+        .order_by("created_at", "pk")
+        .first()
+    )
+
+
 def create_venue(*, owner, name: str, area, phone: str) -> Venue:
     """Create a draft venue with default settings, hours and peak times; ``owner`` owns it.
 
     The calendar can be used before approval (BR-22); players can't see it until approved.
+    An owner sets up one venue at a time: while they have a draft, they finish that one first.
+    Two venues can't have the same name in the same area.
     """
+    name = clean_venue_name(name)
     with transaction.atomic():
-        venue = Venue.objects.create(
-            name=name.strip(), slug=_unique_slug(name), area=area, phone=phone
-        )
+        # Serialise this owner's create requests: a double tap can't make two drafts.
+        advisory_xact_lock(f"venue-create:{owner.pk}")
+        draft = draft_venue_of(owner)
+        if draft is not None:
+            raise RuleViolation(_("Finish setting up %(venue)s first.") % {"venue": draft.name})
+        _check_name_free(name, area)
+        try:
+            with transaction.atomic():
+                venue = Venue.objects.create(
+                    name=name, slug=_unique_slug(name), area=area, phone=phone
+                )
+        except IntegrityError as exc:  # listed by someone else a moment ago
+            if _is_name_clash(exc):
+                raise _name_taken(name, area) from None
+            raise
         VenueSettings.objects.create(venue=venue)
         OpeningHours.objects.bulk_create(OpeningHours(venue=venue, weekday=d) for d in range(7))
         pricing.create_default_peak_periods(venue)
@@ -201,9 +257,19 @@ def update_profile(venue: Venue, actor, **fields) -> Venue:
         (fields.get("latitude") is None) != (fields.get("longitude") is None)
     ):
         raise RuleViolation(_("Set both latitude and longitude, or neither."))
+    if "name" in fields:
+        fields["name"] = clean_venue_name(fields["name"])
     for name, value in fields.items():
         setattr(venue, name, value.strip() if isinstance(value, str) else value)
-    venue.save()
+    if "name" in fields or "area" in fields:
+        _check_name_free(venue.name, venue.area, exclude_pk=venue.pk)
+    try:
+        with transaction.atomic():
+            venue.save()
+    except IntegrityError as exc:
+        if _is_name_clash(exc):
+            raise _name_taken(venue.name, venue.area) from None
+        raise
     return venue
 
 
