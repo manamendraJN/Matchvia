@@ -17,7 +17,9 @@ from pricing.models import PeakPeriod
 from venues import services as venue_services
 from venues.models import Area, Court, OpeningHours, Venue, VenueMembership, VenueStatus
 
+from . import services
 from .forms import VenueDecisionForm
+from .models import AccessAction, AdminAccessLog
 
 
 @admin.register(Area)
@@ -116,6 +118,8 @@ class VenueAdmin(admin.ModelAdmin):
         if not self.has_change_permission(request):
             return redirect("admin:index")
         venue = get_object_or_404(Venue.objects.select_related("area"), pk=venue_id)
+        if request.method == "GET":  # the page shows the owners' names and numbers
+            services.log_access(request.user, AccessAction.VIEW, "venue", venue.pk)
         form = VenueDecisionForm(request.POST or None)
         if request.method == "POST" and form.is_valid():
             decision, reason = form.cleaned_data["decision"], form.cleaned_data["reason"]
@@ -152,3 +156,24 @@ class VenueAdmin(admin.ModelAdmin):
             "is_pending": venue.status == VenueStatus.PENDING,
         }
         return TemplateResponse(request, "adminpanel/venue_review.html", context)
+
+
+@admin.register(AdminAccessLog)
+class AdminAccessLogAdmin(admin.ModelAdmin):
+    """A5: who looked at personal data. Read-only: no add, change or delete for anyone."""
+
+    list_display = ["created_at", "admin", "action", "object_type", "object_id", "detail"]
+    list_filter = [("admin", admin.RelatedOnlyFieldListFilter), "action", "object_type"]
+    date_hierarchy = "created_at"
+    list_select_related = ["admin"]
+    fields = list_display
+    readonly_fields = list_display
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

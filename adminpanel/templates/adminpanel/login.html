@@ -1,0 +1,23 @@
+{% extends "admin/login.html" %}
+{% load i18n %}
+
+{% block content %}
+{% for error in form.non_field_errors %}<p class="errornote">{{ error }}</p>{% endfor %}
+<div id="content-main">
+  <form method="post" action="{% url 'admin:login' %}" id="login-form" novalidate>{% csrf_token %}
+    <div class="form-row">
+      {{ form.phone.errors }}
+      {{ form.phone.label_tag }} {{ form.phone }}
+    </div>
+    <div class="form-row">
+      {{ form.password.errors }}
+      {{ form.password.label_tag }} {{ form.password }}
+      <input type="hidden" name="next" value="{{ next }}">
+    </div>
+    <p class="help">{% translate "Next we send a code to your mobile by SMS." %}</p>
+    <div class="submit-row">
+      <input type="submit" value="{% translate 'Continue' %}">
+    </div>
+  </form>
+</div>
+{% endblock %}

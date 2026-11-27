@@ -15,7 +15,7 @@ ALLOWED_HOSTS: list[str] = []
 
 # ---------------------------------------------------------------- applications
 DJANGO_APPS = [
-    "django.contrib.admin",
+    "adminpanel.admin_site_config.MatchviaAdminConfig",  # replaces django.contrib.admin
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",

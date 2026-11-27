@@ -39,7 +39,9 @@ and `SMS_ALLOWED_NUMBERS=+9477...` (only these numbers will receive SMS).
 
 To use the admin site, create a platform admin:
 `uv run python manage.py createsuperuser` (asks for a mobile number like `+94771234567`, a name and a
-password).
+password of 12+ characters). Signing in to `/admin/` takes the number and password, then a 6-digit
+code sent by SMS to that number, so keep `run_worker` running (with the console SMS backend the code
+is printed in the worker's window). Only superusers can open the admin; a session lasts 8 hours.
 
 Generate each secret with:
 

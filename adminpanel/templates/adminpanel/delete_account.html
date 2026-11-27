@@ -1,0 +1,47 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate "Home" %}</a>
+  &rsaquo; <a href="{% url 'admin:accounts_user_changelist' %}">{% translate "Users" %}</a>
+  &rsaquo; <a href="{{ change_url }}">{{ account }}</a>
+  &rsaquo; {% translate "Delete account" %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <h2>{{ account.name|default:"-" }} ({{ account.phone }})</h2>
+  <p>{% translate "This runs the same steps as when a player deletes their own account:" %}</p>
+  <ul>
+    <li>{% translate "Name and mobile number removed from the account, the venues' customer books and their bookings." %}</li>
+    <li>{% blocktranslate count n=upcoming %}{{ n }} upcoming booking is cancelled and the venue is told by SMS.{% plural %}{{ n }} upcoming bookings are cancelled and the venues are told by SMS.{% endblocktranslate %}</li>
+    <li>{% translate "They leave their teams and lose venue staff access. Past bookings stay, anonymous." %}</li>
+    <li>{% translate "They are signed out everywhere. This can't be undone." %}</li>
+  </ul>
+
+  {% if blockers %}
+    <p class="errornote">{% translate "This account can't be deleted yet:" %}</p>
+    <ul>{% for blocker in blockers %}<li>{{ blocker.message }}</li>{% endfor %}</ul>
+    <p><a href="{{ change_url }}">{% translate "Back" %}</a></p>
+  {% else %}
+    <form method="post" novalidate>{% csrf_token %}
+      {% for error in form.non_field_errors %}<p class="errornote">{{ error }}</p>{% endfor %}
+      <fieldset class="module aligned">
+        {% for field in form %}
+          <div class="form-row">
+            {{ field.errors }}
+            {{ field.label_tag }} {{ field }}
+            {% if field.help_text %}<div class="help">{{ field.help_text }}</div>{% endif %}
+          </div>
+        {% endfor %}
+      </fieldset>
+      <div class="submit-row">
+        <input type="submit" class="deletelink" value="{% translate 'Delete account' %}">
+        <a href="{{ change_url }}" class="closelink">{% translate "Cancel" %}</a>
+      </div>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

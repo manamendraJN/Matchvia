@@ -310,3 +310,10 @@ def team_bookings(team, *, now: datetime | None = None):
         .select_related("venue", "court")
         .order_by("start_at")[:20]
     )
+
+
+def bookings_on_day(day) -> int:
+    """Active bookings (not blocks) on one operating day, across all venues (admin home, A1)."""
+    return Booking.objects.filter(
+        kind=Kind.BOOKING, status__in=ACTIVE_STATUSES, operating_date=day
+    ).count()

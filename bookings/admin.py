@@ -1,7 +1,12 @@
-"""Read-only booking lookup for platform admins (US-A04). Changes go through the services only."""
+"""Read-only booking lookup for platform admins (US-A04). Changes go through the services only.
+
+Opening a booking or customer, and every search, is written to the access log (A5).
+"""
 
 from django.contrib import admin
+from django.utils.translation import gettext_lazy as _
 
+from adminpanel.mixins import AccessLoggedMixin
 from venues.models import VenueCustomer
 
 from .models import Booking, BookingEvent
@@ -31,7 +36,11 @@ class ReadOnlyAdmin(admin.ModelAdmin):
 
 
 @admin.register(Booking)
-class BookingAdmin(ReadOnlyAdmin):
+class BookingAdmin(AccessLoggedMixin, ReadOnlyAdmin):
+    """A4: one search box for a reference (MV-...) or the customer's phone number."""
+
+    access_object_type = "booking"
+    phone_search_field = "venue_customer__phone"
     list_display = [
         "reference",
         "venue",
@@ -44,7 +53,8 @@ class BookingAdmin(ReadOnlyAdmin):
         "price_lkr",
     ]
     list_filter = ["status", "kind", "source", "venue"]
-    search_fields = ["reference", "venue_customer__phone"]
+    search_fields = ["reference", "customer_name"]
+    search_help_text = _("Booking reference (MV-7K3P9Q) or customer phone number")
     date_hierarchy = "start_at"
     inlines = [EventInline]
 
@@ -57,7 +67,11 @@ class BookingAdmin(ReadOnlyAdmin):
 
 
 @admin.register(VenueCustomer)
-class VenueCustomerAdmin(ReadOnlyAdmin):
+class VenueCustomerAdmin(AccessLoggedMixin, ReadOnlyAdmin):
+    access_object_type = "venue_customer"
+    log_list_views = True
+    phone_search_field = "phone"
+
     list_display = ["name", "phone", "venue", "user", "is_blocked_online"]
     list_filter = ["is_blocked_online", "venue"]
-    search_fields = ["phone", "name"]
+    search_fields = ["name"]

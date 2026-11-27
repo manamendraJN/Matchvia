@@ -1,0 +1,40 @@
+{% extends "admin/index.html" %}
+{% load i18n %}
+
+{% block content %}
+<div>
+  <div class="module">
+    <table>
+      <caption>{% translate "Today" %}</caption>
+      <tbody>
+        <tr><th scope="row"><a href="{% url 'admin:venues_venue_changelist' %}?status__exact=pending">{% translate "Venues waiting for approval" %}</a></th><td>{{ pending_count }}</td></tr>
+        <tr><th scope="row"><a href="{% url 'admin:venues_venue_changelist' %}?status__exact=approved">{% translate "Live venues" %}</a></th><td>{{ live_count }}</td></tr>
+        <tr><th scope="row"><a href="{% url 'admin:venues_venue_changelist' %}?status__exact=suspended">{% translate "Suspended venues" %}</a></th><td>{{ suspended_count }}</td></tr>
+        <tr><th scope="row">{% translate "Bookings today" %}</th><td>{{ bookings_today }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="module">
+    <table>
+      <caption>{% translate "Waiting for approval (oldest first)" %}</caption>
+      {% if waiting %}
+        <thead><tr><th>{% translate "Venue" %}</th><th>{% translate "Area" %}</th><th>{% translate "Submitted" %}</th><th>{% translate "Owner" %}</th></tr></thead>
+        <tbody>
+          {% for venue in waiting %}
+            <tr>
+              <td><a href="{% url 'admin:venues_venue_review' venue.pk %}">{{ venue.name }}</a></td>
+              <td>{{ venue.area }}</td>
+              <td>{{ venue.status_changed_at|date:"j M Y, g:i A" }}</td>
+              <td>{{ venue.owner_name|default:"—" }}{% if venue.owner_phone %} ({{ venue.owner_phone }}){% endif %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      {% else %}
+        <tbody><tr><td>{% translate "No venues waiting." %}</td></tr></tbody>
+      {% endif %}
+    </table>
+  </div>
+</div>
+{{ block.super }}
+{% endblock %}

@@ -6,6 +6,7 @@ from django.urls import reverse
 
 from accounts import services
 from accounts.models import Role, User
+from adminpanel.testing import sign_in_admin
 from core.exceptions import NotAllowed, RuleViolation
 
 from .factories import UserFactory
@@ -154,7 +155,7 @@ def admin_client(client):
     root = User.objects.create_superuser(
         phone="+94711234567", name="Founder", password="a-long-admin-password"
     )
-    client.force_login(root)
+    sign_in_admin(client, root)
     return client
 
 

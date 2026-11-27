@@ -1,11 +1,17 @@
 from django.contrib import admin
 
+from adminpanel.mixins import AccessLoggedMixin
+
 from .models import SmsMessage
 
 
 @admin.register(SmsMessage)
-class SmsMessageAdmin(admin.ModelAdmin):
+class SmsMessageAdmin(AccessLoggedMixin, admin.ModelAdmin):
     """Read-only view of the outbox for platform admins. OTP text is never shown."""
+
+    access_object_type = "sms"
+    log_list_views = True
+    phone_search_field = "to_phone"
 
     list_display = ["id", "purpose", "status", "to_phone", "scheduled_for", "attempts", "sent_at"]
     list_filter = ["status", "purpose"]
