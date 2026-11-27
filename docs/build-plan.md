@@ -106,7 +106,7 @@ changed) before the step that needs it.
 
 ### Milestone 4: Recommended for the pilot (Should) (about 3 days)
 
-- [ ] **S27** Recurring engine and staff weekly bookings (V16) · 3 d
+- [x] **S27** Recurring engine and staff weekly bookings (V16) · 3 d
 
 ### Milestone 5: Pilot readiness (about 7.5 days)
 
@@ -117,8 +117,8 @@ changed) before the step that needs it.
 
 ### Milestone 6: Should requirements, if time allows (about 5.5 days)
 
-- [ ] **S32** Teams and invites (P14–P17) · 2.5 d
-- [ ] **S33** Captain weekly requests and approvals (P12, P13, V17) · 2 d
+- [x] **S32** Teams and invites (P14–P17) · 2.5 d
+- [x] **S33** Captain weekly requests and approvals (P12, P13, V17) · 2 d
 - [ ] **S34** Share page and QR poster (V26) · 1 d
 
 ---
@@ -645,4 +645,7 @@ security.
 | S24 (part) | 26 Nov 2026 | | | Prompt C6: staff screen (V24): add by name and phone with SMS, remove, last-owner protection. Booking rules screen (V20) still to do |
 | S08 | 26 Nov 2026 | 27 Nov 2026 | | Prompts C2 and C7: outbox, retries, OTP drop, Text.lk adapter (tested with a fake HTTP layer; real sending needs SMS_API_KEY and an approved sender ID), staging allowlist, heartbeat in /healthz, daily purge of OTP rows and old SMS numbers |
 | S17 | 27 Nov 2026 | 27 Nov 2026 | | Prompt C7: SMS templates (one GSM-7 SMS each, tested), reminders queued at booking with quiet hours, cancelled on cancel/no-show, rescheduled on move, dropped if the game started; one live reminder per booking in the database. WebOTP line in the code SMS still to do (needs the domain) |
+| S27 | 27 Nov 2026 | 27 Nov 2026 | | Prompt C8 part A: RecurringSeries with composite keys, week preview, expansion with a savepoint per week, staff weekly bookings (V16), cancel one week or the rest (captain keeps weeks inside the window), series excluded from BR-12, 🔁 on calendar |
+| S32 | 27 Nov 2026 | 27 Nov 2026 | | Prompt C8 part B: teams, invites with hashed tokens (7-day expiry, re-send, 20/day, 15-player limit under concurrent accepts, wrong-number message), team tag on bookings, team bookings in My bookings, P14-P17, Teams in the bottom bar |
+| S33 | 27 Nov 2026 | 27 Nov 2026 | | Prompt C8 part B: captain requests (P12) that reserve nothing, venue notified, approve/reject with preview (V17) under the BR-13 approver setting, 48-hour expiry job, P13 |
 | S25 (part) | 26 Nov 2026 | | | Prompt C3: area admin, venue review page with approve/reject/suspend/unsuspend and owner SMS. Booking lookup and access log still to do (C9) |

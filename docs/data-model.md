@@ -364,8 +364,8 @@ booked online, by phone or by WhatsApp.
 | operating_date | DateField | Local operating day of `start_at` (section 1.2). Set by the service |
 | venue_customer | FK VenueCustomer, PROTECT, null | Null for blocks and for walk-ins without a phone |
 | customer_name | CharField(80), blank | Snapshot shown on the calendar (walk-ins without phone use only this) |
-| team | FK Team, SET_NULL, null | US-C03. Added with the teams app (C8) |
-| series | FK RecurringSeries, PROTECT, null | Weekly series this booking belongs to. Added with recurring series (C8) |
+| team | FK Team, SET_NULL, null | US-C03 (C8) |
+| series | FK RecurringSeries, PROTECT, null | Weekly series this booking belongs to (C8) |
 | price_lkr | PositiveInteger, default 0 | Stored at booking time (US-P04). 0 for blocks |
 | price_change_reason | CharField(255), blank | Required when staff change the calculated price (BR-19) |
 | block_reason | CharField: `maintenance`, `private_event`, `coaching`, `closed`, `other`, blank | **CK**. Only for blocks |
@@ -472,9 +472,13 @@ states valid):
 | cancelled_from | DateField, null | Series cancelled from this date onwards |
 | created_at / updated_at | DateTimeField | |
 
-- **UQ** `(id, venue)` for the composite foreign key from `Booking`.
+- **UQ** `(id, venue)` for the composite foreign key from `Booking`. Composite foreign keys also keep
+  `(court, venue)` and `(venue_customer, venue)` inside one venue (migration 0005).
 - **IX** `(venue, status)` for the owner's pending-requests list; partial **IX** `(request_expires_at)`
   where `status = 'pending'` for the expiry job.
+- `weekday` is always the weekday of `first_date` (set by the service). A captain's request whose
+  first week is inside the minimum notice starts a week later. Approving a request with no free week
+  is refused (the venue rejects it instead). Reverse names: `venue.weekly_series`.
 
 ### 3.5 teams
 
