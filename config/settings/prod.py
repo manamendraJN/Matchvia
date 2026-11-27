@@ -4,7 +4,7 @@ The app refuses to start (ImproperlyConfigured) if a required variable is missin
 `manage.py check --deploy --fail-level WARNING` must pass against these settings in CI.
 """
 
-from ._env import admin_path, as_list, database, optional, required, required_list
+from ._env import admin_path, as_list, database, optional, phone_list, required, required_list
 from .base import *
 
 DEBUG = False
@@ -16,8 +16,13 @@ SECRET_KEY_FALLBACKS = as_list(optional("SECRET_KEY_FALLBACKS"))
 # Separate from SECRET_KEY so rotating one never affects the other (architecture 5 A02).
 OTP_HMAC_KEY = required("OTP_HMAC_KEY")
 
-# Dotted path to the SMS gateway adapter (Text.lk, D4).
+# Dotted path to the SMS gateway adapter (Text.lk, D4). The adapter itself refuses to start
+# without SMS_API_KEY and SMS_SENDER_ID, so a misconfigured worker fails loudly.
 SMS_BACKEND = required("SMS_BACKEND")
+SMS_API_KEY = optional("SMS_API_KEY")
+SMS_SENDER_ID = optional("SMS_SENDER_ID")
+SMS_ALLOWED_NUMBERS = phone_list("SMS_ALLOWED_NUMBERS")  # set on staging only
+HEALTHZ_CHECK_WORKER = True
 
 # The origin firewall accepts traffic from Cloudflare only (architecture 5.1).
 TRUST_CF_CONNECTING_IP = True

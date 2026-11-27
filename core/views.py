@@ -1,9 +1,12 @@
 import logging
 
+from django.conf import settings
 from django.db import DatabaseError, connection
 from django.http import JsonResponse
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
+
+from core import heartbeat
 
 logger = logging.getLogger(__name__)
 
@@ -13,8 +16,8 @@ logger = logging.getLogger(__name__)
 def healthz(request):
     """Health check for the uptime monitor and deploy script (architecture 4.2, 6.5).
 
-    Reports only coarse status, never versions or error details. The worker heartbeat
-    is added in S08.
+    Reports only coarse status, never versions or error details. Where the worker must run
+    (staging, production), a heartbeat older than WORKER_HEARTBEAT_MAX_AGE fails the check.
     """
     checks = {"database": "ok"}
     try:
@@ -23,6 +26,12 @@ def healthz(request):
     except DatabaseError:
         logger.exception("Health check: database unavailable")
         checks["database"] = "error"
+
+    if settings.HEALTHZ_CHECK_WORKER:
+        age = heartbeat.age_seconds("worker")
+        checks["worker"] = (
+            "ok" if age is not None and age <= settings.WORKER_HEARTBEAT_MAX_AGE else "stale"
+        )
 
     healthy = all(value == "ok" for value in checks.values())
     return JsonResponse(

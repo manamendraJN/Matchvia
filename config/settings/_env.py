@@ -41,6 +41,19 @@ def required_list(name: str) -> list[str]:
     return items
 
 
+def phone_list(name: str) -> list[str]:
+    """A comma-separated list of mobile numbers, normalised; refuses anything invalid."""
+    from core.phone import InvalidPhone, normalise_phone
+
+    numbers = []
+    for item in as_list(optional(name)):
+        try:
+            numbers.append(normalise_phone(item))
+        except InvalidPhone as exc:
+            raise ImproperlyConfigured(f"{name} contains an invalid mobile number.") from exc
+    return numbers
+
+
 def database(url: str, *, conn_max_age: int = 0) -> dict:
     config = environ.Env.db_url_config(url)
     if config.get("ENGINE") != "django.db.backends.postgresql":

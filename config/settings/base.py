@@ -162,5 +162,16 @@ SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = "Lax"
 
+# ---------------------------------------------------------------- SMS and worker
+# Text.lk (D4). Key and sender ID come from the environment only (CLAUDE.md rule 5).
+SMS_API_URL = "https://app.text.lk/api/v3/sms/send"
+SMS_API_KEY = ""
+SMS_SENDER_ID = ""
+# When not empty, SMS go only to these numbers (+94...). Staging sets it (architecture 6.4).
+SMS_ALLOWED_NUMBERS: list[str] = []
+# /healthz fails when the worker's heartbeat is older than this (staging and production).
+HEALTHZ_CHECK_WORKER = False
+WORKER_HEARTBEAT_MAX_AGE = 120  # seconds
+
 # Admin URL prefix; production requires a private value from the environment.
 ADMIN_URL_PATH = "admin/"

@@ -364,3 +364,11 @@ def test_parallel_guesses_cannot_exceed_five_wrong_codes():
     assert errors.count("WrongCode") == 4
     assert errors.count("NumberLocked") == 4
     assert OTPChallenge.objects.get().attempts == 5
+
+
+def test_old_otp_rows_are_purged(clock):
+    request()
+    clock.shift(timedelta(hours=24, seconds=1))
+    request(phone="+94711234567")
+    assert services.purge_old_otps() == 1
+    assert list(OTPChallenge.objects.values_list("phone", flat=True)) == ["+94711234567"]

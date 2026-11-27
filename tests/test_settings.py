@@ -95,7 +95,7 @@ def test_csp_has_no_unsafe_sources():
 
 
 def test_dev_settings_load(monkeypatch):
-    dev = load_settings("dev", monkeypatch)
+    dev = load_settings("dev", monkeypatch, SMS_BACKEND=None)
     assert dev.DEBUG is True
     assert dev.SMS_BACKEND.endswith("ConsoleBackend")
     assert dev.ADMIN_URL_PATH.endswith("/")
@@ -195,3 +195,14 @@ def test_prod_passes_deploy_checks():
         check=False,
     )
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_sms_allowlist_is_normalised(monkeypatch):
+    staging = load_settings("staging", monkeypatch, SMS_ALLOWED_NUMBERS="077 123 4567, +94711111111")
+    assert staging.SMS_ALLOWED_NUMBERS == ["+94771234567", "+94711111111"]
+    assert staging.HEALTHZ_CHECK_WORKER is True
+
+
+def test_sms_allowlist_refuses_bad_numbers(monkeypatch):
+    with pytest.raises(ImproperlyConfigured, match="SMS_ALLOWED_NUMBERS"):
+        load_settings("prod", monkeypatch, SMS_ALLOWED_NUMBERS="0112345678")

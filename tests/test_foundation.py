@@ -150,3 +150,20 @@ def test_btree_gist_extension_is_installed():
     with connection.cursor() as cursor:
         cursor.execute("SELECT 1 FROM pg_extension WHERE extname = 'btree_gist'")
         assert cursor.fetchone() == (1,)
+
+
+def test_healthz_reports_a_stale_worker(client, settings):
+    from django.core.cache import cache
+
+    from core import heartbeat
+
+    settings.HEALTHZ_CHECK_WORKER = True
+    cache.clear()
+    response = client.get(reverse("healthz"))
+    assert response.status_code == 503
+    assert response.json()["worker"] == "stale"
+
+    heartbeat.beat("worker")
+    response = client.get(reverse("healthz"))
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok", "database": "ok", "worker": "ok"}

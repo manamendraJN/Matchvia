@@ -8,6 +8,7 @@ messages are retried: a rare duplicate SMS is better than a lost one.
 import logging
 from datetime import timedelta
 
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
@@ -38,7 +39,8 @@ def send_due_messages(
     now = timezone.now()
     with transaction.atomic():
         due = list(
-            SmsMessage.objects.select_for_update(skip_locked=True)
+            SmsMessage.objects.select_for_update(skip_locked=True, of=("self",))
+            .select_related("booking")
             .filter(status=SmsMessage.Status.QUEUED, scheduled_for__lte=now)
             .order_by("scheduled_for", "id")[:batch_size]
         )
@@ -59,6 +61,18 @@ def _process(message: SmsMessage, backend: BaseSmsBackend, now) -> None:
             return
     if not message.to_phone:
         _finish(message, SmsMessage.Status.CANCELLED, error="no phone number")
+        return
+    if message.purpose == SmsMessage.Purpose.REMINDER:
+        booking = message.booking
+        if booking is None or booking.status != "confirmed" or booking.start_at <= now:
+            # Never remind about a game that already started or was cancelled (architecture 4.2).
+            _finish(message, SmsMessage.Status.CANCELLED, error="game started or booking changed")
+            return
+    allowlist = settings.SMS_ALLOWED_NUMBERS
+    if allowlist and message.to_phone not in allowlist:
+        # Staging sends only to founders' and testers' numbers (architecture 6.4).
+        _finish(message, SmsMessage.Status.CANCELLED, error="not on the SMS allowlist")
+        logger.info("sms.blocked_by_allowlist id=%s", message.pk)
         return
 
     message.attempts += 1

@@ -11,7 +11,6 @@ from notifications import services
 from notifications.backends import locmem
 from notifications.backends.base import SmsSendError
 from notifications.backends.locmem import LocmemBackend
-from notifications.backends.textlk import TextLkBackend
 from notifications.models import SmsMessage
 from notifications.worker import MAX_ATTEMPTS, RETRY_DELAYS, send_due_messages
 
@@ -137,14 +136,6 @@ def test_unexpected_gateway_exception_does_not_stop_other_messages():
     assert second.status == SmsMessage.Status.SENT
 
 
-def test_textlk_placeholder_never_pretends_to_send():
-    message = queue()
-    send_due_messages(backend=TextLkBackend())
-    message.refresh_from_db()
-    assert message.status == SmsMessage.Status.QUEUED
-    assert "not implemented" in message.last_error
-
-
 def test_logs_never_contain_code_or_full_phone(caplog):
     caplog.set_level(logging.DEBUG)
     services.queue_otp_sms(to_phone=PHONE, code="482913")
@@ -183,3 +174,31 @@ def test_message_locked_by_another_worker_is_skipped():
         thread.join(timeout=5)
     assert locmem.outbox == []
     assert send_due_messages(backend=LocmemBackend()) == 1
+
+
+def test_allowlist_blocks_other_numbers(settings):
+    settings.SMS_ALLOWED_NUMBERS = ["+94711111111"]
+    allowed = services.queue_sms(to_phone="+94711111111", purpose="venue_notice", body="ok")
+    blocked = services.queue_sms(to_phone=PHONE, purpose="venue_notice", body="no")
+
+    send_due_messages(backend=LocmemBackend())
+
+    allowed.refresh_from_db()
+    blocked.refresh_from_db()
+    assert allowed.status == SmsMessage.Status.SENT
+    assert blocked.status == SmsMessage.Status.CANCELLED
+    assert "allowlist" in blocked.last_error
+    assert [sms.to_phone for sms in locmem.outbox] == ["+94711111111"]
+
+
+def test_forget_old_phone_numbers():
+    with time_machine.travel(T0, tick=False) as clock:
+        old_sent = queue(purpose="venue_notice")
+        SmsMessage.objects.filter(pk=old_sent.pk).update(status=SmsMessage.Status.SENT)
+        old_queued = queue(purpose="venue_notice", scheduled_for=T0 + timedelta(days=200))
+        clock.shift(timedelta(days=91))
+        recent = queue(purpose="venue_notice")
+        assert services.forget_old_phone_numbers() == 1
+    for message, phone in ((old_sent, None), (old_queued, PHONE), (recent, PHONE)):
+        message.refresh_from_db()
+        assert message.to_phone == phone

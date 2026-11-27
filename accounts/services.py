@@ -371,3 +371,15 @@ def delete_account(user: User, *, code: str, ip: str | None) -> None:
         OTPChallenge.objects.filter(phone=phone).delete()
         notifications.forget_phone(phone)
     logger.info("account.deleted user_id=%s", user.pk)
+
+
+# ---------------------------------------------------------------- minimum data (PDPA)
+
+OTP_RETENTION = timedelta(hours=24)
+
+
+def purge_old_otps(*, now=None) -> int:
+    """Delete OTP challenges older than 24 hours (data-model 3.1). Run daily by the worker."""
+    now = now or timezone.now()
+    deleted, _rows = OTPChallenge.objects.filter(created_at__lt=now - OTP_RETENTION).delete()
+    return deleted
