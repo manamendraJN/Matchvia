@@ -734,9 +734,9 @@ Customisations below make the key tasks one-screen jobs and keep them usable on 
 #### A0 Admin sign-in
 
 - **Purpose:** keep the admin site for platform admins only.
-- **Main elements:** step 1 mobile number + password; step 2 the 6-digit code sent by SMS.
+- **Main elements:** mobile number + password (Django admin login, at the private admin path).
 - **Empty / error:** "Wrong mobile number or password." for any wrong pair or a non-admin account;
-  "Too many attempts. Try again in 15 minutes." after 5 wrong passwords; wrong code → attempts left.
+  "Too many attempts. Try again in 15 minutes." after 5 wrong passwords.
 
 #### A1 Admin home: pending venues · US-A01
 

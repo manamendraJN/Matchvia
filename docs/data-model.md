@@ -109,7 +109,7 @@ constraint, `null` = nullable. Fields are not nullable unless marked.
 |---|---|---|
 | id | BigAutoField PK | |
 | phone | CharField(16) | Not an FK: a code can be requested before the account exists |
-| purpose | CharField: `login`, `delete_account`, `admin_login` (second step of the admin sign-in) | **CK** |
+| purpose | CharField: `login`, `delete_account` | **CK** |
 | code_hash | CharField(128) | Hash of the 6-digit code (never stored in clear) |
 | expires_at | DateTimeField | `created_at + 5 min` (BR-27) |
 | attempts | PositiveSmallInteger, default 0 | Wrong guesses on this challenge |
