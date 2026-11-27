@@ -31,6 +31,11 @@ Open http://localhost:8000. The health check is at http://localhost:8000/healthz
 
 To sign in locally, start the worker in a second terminal (`uv run python manage.py run_worker`).
 SMS are never sent in development: the worker prints them, so the 6-digit code appears there.
+Reminders are printed at their scheduled time (by default 3 hours before the game).
+
+To try real SMS through Text.lk from your laptop, add to `.env` (never commit it):
+`SMS_BACKEND=notifications.backends.textlk.TextLkBackend`, `SMS_API_KEY=...`, `SMS_SENDER_ID=...`
+and `SMS_ALLOWED_NUMBERS=+9477...` (only these numbers will receive SMS).
 
 To use the admin site, create a platform admin:
 `uv run python manage.py createsuperuser` (asks for a mobile number like `+94771234567`, a name and a

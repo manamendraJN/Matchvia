@@ -78,7 +78,7 @@ changed) before the step that needs it.
 - [x] **S05** Venue permissions and isolation test framework · 2 d
 - [x] **S06** Booking table and the no-double-booking constraint · 2.5 d
 - [x] **S07** Free-slot engine and pricing · 2.5 d
-- [ ] **S08** SMS outbox, worker and gateway adapter · 2 d
+- [x] **S08** SMS outbox, worker and gateway adapter · 2 d
 - [ ] **S09** Front-end foundation (layout, Tailwind, HTMX, CSP, components, i18n) · 2 d
 - [ ] **S10** Phone OTP sign-in · 3 d
 - [x] **S11** Booking services (online, staff, cancel, move, no-show) · 3 d
@@ -90,7 +90,7 @@ changed) before the step that needs it.
 - [ ] **S14** Booking review and confirmation (P4–P8) · 2 d
 - [x] **S15** Venue calendar, day and week (V7–V9) · 3 d
 - [x] **S16** New booking sheet and booking actions (V10–V13) · 3 d
-- [ ] **S17** Booking SMS and reminders · 1.5 d
+- [x] **S17** Booking SMS and reminders · 1.5 d
 - [ ] **S18** Demo-ready milestone (seed data, demo on staging) · 1 d
 
 ### Milestone 3: Complete the Must requirements (about 17.5 days)
@@ -643,4 +643,6 @@ security.
 | S16 | 26 Nov 2026 | 26 Nov 2026 | | Prompt C6: new booking (walk-in/phone/WhatsApp, UX4 default, durations, price change with reason, Save anyway, customer suggestions), booking details with history, move, cancel with late warning, no-show and undo, Arrived. Pages instead of bottom sheets |
 | S22 (part) | 26 Nov 2026 | | | Prompt C6: block time on one or more courts with the conflict list; remove a block. Closing a whole day with "cancel all and SMS" (V15) still to do |
 | S24 (part) | 26 Nov 2026 | | | Prompt C6: staff screen (V24): add by name and phone with SMS, remove, last-owner protection. Booking rules screen (V20) still to do |
+| S08 | 26 Nov 2026 | 27 Nov 2026 | | Prompts C2 and C7: outbox, retries, OTP drop, Text.lk adapter (tested with a fake HTTP layer; real sending needs SMS_API_KEY and an approved sender ID), staging allowlist, heartbeat in /healthz, daily purge of OTP rows and old SMS numbers |
+| S17 | 27 Nov 2026 | 27 Nov 2026 | | Prompt C7: SMS templates (one GSM-7 SMS each, tested), reminders queued at booking with quiet hours, cancelled on cancel/no-show, rescheduled on move, dropped if the game started; one live reminder per booking in the database. WebOTP line in the code SMS still to do (needs the domain) |
 | S25 (part) | 26 Nov 2026 | | | Prompt C3: area admin, venue review page with approve/reject/suspend/unsuspend and owner SMS. Booking lookup and access log still to do (C9) |

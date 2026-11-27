@@ -543,7 +543,8 @@ states valid):
 
 - Partial **IX** `(scheduled_for)` where `status = 'queued'`: the send job's queue. **IX** `(to_phone)` for deletion and purge.
 - **CK** `purpose` and `status` in choices; **CK** `status = 'queued' OR encrypted_body = ''`.
-- **Why `encrypted_body`:** the worker sends the OTP after the request has finished, so it needs the code, but the outbox must not hold readable codes. Encrypting with a key that lives only in the environment keeps a database leak (or backup) from exposing live codes. Added in C2; `venue` and `booking` foreign keys are added by the S04/S06 migrations.
+- **Why `encrypted_body`:** the worker sends the OTP after the request has finished, so it needs the code, but the outbox must not hold readable codes. Encrypting with a key that lives only in the environment keeps a database leak (or backup) from exposing live codes. Added in C2; `venue` and `booking` foreign keys (SET_NULL) and the one-reminder constraint were added in C7.
+- **SMS text** lives in `notifications/templates/sms/*.txt` (translatable). A test keeps every message to one 160-character SMS in the GSM-7 character set; times in SMS use a plain hyphen because the en dash would force UCS-2 (70 characters per SMS).
 - **UQ** `(booking, purpose)` where `purpose = 'reminder' AND status <> 'cancelled'`: one reminder
   per booking (US-P07).
 - **Outbox pattern:** the message row is written **in the same transaction** as the booking.

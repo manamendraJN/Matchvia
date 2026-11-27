@@ -289,8 +289,8 @@ Docker image as the web app and is restarted automatically if it exits.
 | `expire_holds` | 60 s | Phase 2: `held` → `expired` for holds past `hold_expires_at` |
 | `expire_series_requests` | 15 min | `pending` recurring requests past 48 h → `expired`, notify captain |
 | `expire_team_invites` | 1 h | Pending invites past 7 days → `expired` |
-| `purge_personal_data` | daily 03:30 | Delete OTP rows older than 24 h; blank `to_phone` on SMS older than 90 days |
-| `heartbeat` | 30 s | Writes the worker's last-seen time to the cache; `/healthz` reports it |
+| `purge_personal_data` | once a day (first pass, then every 24 h) | Delete OTP rows older than 24 h; blank `to_phone` on SMS older than 90 days |
+| `heartbeat` | every pass (5 s) | Writes the worker's last-seen time to the cache; `/healthz` fails in staging/production when it is older than 120 s |
 
 The queue **is the database**: SMS rows are the outbox (data-model 3.6), and expiries are queries on
 indexed columns. Rows are claimed with `SELECT … FOR UPDATE SKIP LOCKED`, so two worker processes
