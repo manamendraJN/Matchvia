@@ -7,3 +7,4 @@ and copying only the files listed here.
 | Library | Version | Files | Source | Integrity (npm tarball) |
 |---|---|---|---|---|
 | htmx | 2.0.11 | `htmx/htmx.min.js`, `htmx/LICENSE` | `https://registry.npmjs.org/htmx.org/-/htmx.org-2.0.11.tgz` | checked against `dist.integrity` (sha512) on 2026-11-26 |
+| Leaflet | 1.9.4 | `leaflet/leaflet.js`, `leaflet/leaflet.js.map`, `leaflet/leaflet.css`, `leaflet/images/*.png` (all five), `leaflet/LICENSE` | `https://registry.npmjs.org/leaflet/-/leaflet-1.9.4.tgz` | checked against `dist.integrity` (sha512) on 2026-11-27 |
