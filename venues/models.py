@@ -123,6 +123,8 @@ class Venue(models.Model):
         blank=True,
         related_name="+",
     )
+    # Last finished step of the setup wizard (V1-V5); setup reopens at the next one (screens 3.1).
+    setup_step = models.PositiveSmallIntegerField(default=1)
     created_at = models.DateTimeField(default=timezone.now, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -134,6 +136,9 @@ class Venue(models.Model):
         constraints = [
             models.CheckConstraint(
                 condition=Q(status__in=VenueStatus.values), name="venue_status_valid"
+            ),
+            models.CheckConstraint(
+                condition=Q(setup_step__gte=1, setup_step__lte=5), name="venue_setup_step_valid"
             ),
             models.CheckConstraint(
                 condition=Q(phone__regex=r"^\+947[0-9]{8}$"), name="venue_phone_lk_mobile"

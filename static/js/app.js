@@ -12,8 +12,11 @@ document.addEventListener("click", (event) => {
   say(button.dataset.waiting);
   navigator.geolocation.getCurrentPosition(
     (position) => {
-      document.getElementById(button.dataset.lat).value = position.coords.latitude.toFixed(6);
-      document.getElementById(button.dataset.lng).value = position.coords.longitude.toFixed(6);
+      const lat = document.getElementById(button.dataset.lat);
+      const lng = document.getElementById(button.dataset.lng);
+      lat.value = position.coords.latitude.toFixed(6);
+      lng.value = position.coords.longitude.toFixed(6);
+      lng.dispatchEvent(new Event("change"));  // the map pin follows (venue_map.js)
       say(button.dataset.done);
     },
     () => say(button.dataset.failed),

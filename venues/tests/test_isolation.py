@@ -33,6 +33,10 @@ def _court_data(prefix=""):
     }
 
 
+def _setup_court_data():
+    return {k: v for k, v in _court_data().items() if "price" not in k}
+
+
 def _hours_data():
     data = {
         "day-TOTAL_FORMS": "7",
@@ -142,6 +146,15 @@ REGISTRY = {
     "series_cancel": (lambda t: {"series_id": t.series.pk}, lambda t: {"reason": "other"}),
     "series_approve": (lambda t: {"series_id": t.series.pk}, lambda t: {}),
     "series_reject": (lambda t: {"series_id": t.series.pk}, lambda t: {"reason": "No"}),
+    # Setup wizard for draft venues
+    "setup": (lambda t: {}, lambda t: {}),
+    "setup_details": (lambda t: {}, lambda t: _profile_data()),
+    "setup_location": (lambda t: {}, lambda t: {"address": "Hacked road"}),
+    "setup_courts": (lambda t: {}, lambda t: {**_setup_court_data(), "add": "1"}),
+    "setup_court_edit": (lambda t: {"court_id": t.court.pk}, lambda t: _setup_court_data()),
+    "setup_hours": (lambda t: {}, lambda t: _hours_data()),
+    "setup_prices": (lambda t: {}, lambda t: _prices_data(t)),
+    "setup_review": (lambda t: {}, lambda t: {}),
 }
 # Who may use each URL on their own venue:
 #   "all"       owner and staff can open it (GET)
@@ -181,6 +194,14 @@ ACCESS = {
     "court_create": "owner",
     "court_edit": "owner",
     "court_toggle": "owner",
+    "setup": "owner",
+    "setup_details": "owner",
+    "setup_location": "owner",
+    "setup_courts": "owner",
+    "setup_court_edit": "owner",
+    "setup_hours": "owner",
+    "setup_prices": "owner",
+    "setup_review": "owner",
 }
 
 
@@ -203,6 +224,7 @@ def fingerprint(venue: Venue):
     return (
         venue.name,
         venue.status,
+        venue.setup_step,
         venue.address,
         venue.phone,
         venue.facilities,
@@ -325,6 +347,7 @@ def urls_with_object_ids() -> set[str]:
 
 OBJECT_URLS = [
     "court_edit",
+    "setup_court_edit",
     "court_toggle",
     "photo_remove",
     "booking_detail",

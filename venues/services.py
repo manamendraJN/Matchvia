@@ -407,6 +407,29 @@ def remove_member(venue: Venue, actor, membership_id) -> None:
 # ---------------------------------------------------------------- approval workflow (BR-22)
 
 
+SETUP_STEPS = 6  # V1 details, V2 location, V3 courts, V4 hours, V5 prices, V6 review
+
+
+def finish_setup_step(venue: Venue, actor, step: int) -> Venue:
+    """Remember that the owner finished ``step`` (1-5) so setup reopens at the next one."""
+    _require_owner(venue, actor)
+    if not 1 <= step < SETUP_STEPS:
+        raise ValueError(f"Unknown setup step: {step}")
+    if step > venue.setup_step:
+        venue.setup_step = step
+        venue.save(update_fields=["setup_step", "updated_at"])
+    return venue
+
+
+def next_setup_step(venue: Venue) -> int:
+    return min(venue.setup_step + 1, SETUP_STEPS)
+
+
+def in_setup(venue: Venue) -> bool:
+    """Draft venues go through the setup steps (V1-V6) before submitting."""
+    return venue.status == VenueStatus.DRAFT
+
+
 def missing_for_submission(venue: Venue) -> list[str]:
     """What still has to be done before the venue can be submitted (V6)."""
     missing = []

@@ -75,6 +75,12 @@ class VenueCreateForm(_PhoneMixin, forms.Form):
     )
 
 
+class VenueDetailsForm(VenueCreateForm):
+    """V1 again, for a venue that already exists (setup step 1)."""
+
+    name = forms.CharField(label=_("Venue name"), max_length=100, widget=_text())
+
+
 class VenueProfileForm(_PhoneMixin, forms.Form):
     """V2/V25: details, location and facilities."""
 
@@ -130,6 +136,15 @@ class VenueProfileForm(_PhoneMixin, forms.Form):
         return data
 
 
+class VenueLocationForm(VenueProfileForm):
+    """V2: address, map pin, description and facilities (name, area and phone are step 1)."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in ("name", "area", "phone"):
+            del self.fields[name]
+
+
 class ImageUploadForm(forms.Form):
     image = forms.FileField(
         label=_("Photo"),
@@ -165,6 +180,15 @@ class CourtForm(forms.Form):
     )
     off_peak_price_lkr = _price_field(_("Normal price per slot (Rs.)"))
     peak_price_lkr = _price_field(_("Peak price per slot (Rs.)"))
+
+
+class CourtSetupForm(CourtForm):
+    """V3: a court without prices; prices come in step 5 (V5)."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        del self.fields["off_peak_price_lkr"]
+        del self.fields["peak_price_lkr"]
 
 
 class CourtPriceForm(forms.Form):

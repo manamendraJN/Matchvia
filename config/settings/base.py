@@ -141,7 +141,8 @@ SECURE_CSP = {
     "default-src": [CSP.SELF],
     "script-src": [CSP.SELF, CSP.NONCE],
     "style-src": [CSP.SELF, CSP.NONCE],
-    "img-src": [CSP.SELF],
+    # OpenStreetMap tiles for the venue map pin (architecture 5 A03, 10).
+    "img-src": [CSP.SELF, "https://tile.openstreetmap.org"],
     "font-src": [CSP.SELF],
     "connect-src": [CSP.SELF],
     "manifest-src": [CSP.SELF],

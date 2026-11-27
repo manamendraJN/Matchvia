@@ -1,0 +1,19 @@
+{% extends "venues/setup/_frame.html" %}
+{% load i18n %}
+
+{% block head %}{% include "venues/_map_assets.html" %}{% endblock %}
+
+{% block setup_content %}
+  <div class="space-y-8">
+    <form method="post" id="location-form" class="space-y-4" novalidate>
+      {% csrf_token %}
+      {% include "components/form_errors.html" %}
+      {% include "venues/_location_fields.html" %}
+    </form>
+
+    {% include "venues/_photos.html" %}
+    <p class="text-sm text-slate-600">{% translate "Photos are optional now. You can add them later." %}</p>
+
+    <button type="submit" form="location-form" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white hover:bg-green-800">{% translate "Next" %}</button>
+  </div>
+{% endblock %}

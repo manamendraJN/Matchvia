@@ -77,6 +77,19 @@ urlpatterns = [
         name="series_reject",
     ),
     # Venue setup (owner edits, staff view)
+    # Setup wizard for draft venues (V1-V6)
+    path("<int:venue_id>/setup/", views.setup, name="setup"),
+    path("<int:venue_id>/setup/details/", views.setup_details, name="setup_details"),
+    path("<int:venue_id>/setup/location/", views.setup_location, name="setup_location"),
+    path("<int:venue_id>/setup/courts/", views.setup_courts, name="setup_courts"),
+    path(
+        "<int:venue_id>/setup/courts/<int:court_id>/",
+        views.setup_court_edit,
+        name="setup_court_edit",
+    ),
+    path("<int:venue_id>/setup/hours/", views.setup_hours, name="setup_hours"),
+    path("<int:venue_id>/setup/prices/", views.setup_prices, name="setup_prices"),
+    path("<int:venue_id>/setup/review/", views.setup_review, name="setup_review"),
     path("<int:venue_id>/profile/", views.profile, name="profile"),
     path("<int:venue_id>/photos/add/", views.photo_add, name="photo_add"),
     path("<int:venue_id>/photos/<int:photo_id>/remove/", views.photo_remove, name="photo_remove"),

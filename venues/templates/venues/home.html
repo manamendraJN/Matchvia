@@ -11,7 +11,7 @@
       <ul class="space-y-3">
         {% for m in memberships %}
           <li>
-            <a href="{% url 'manage:dashboard' m.venue.pk %}" class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:bg-slate-50">
+            <a href="{% if m.role == 'owner' and m.venue.status == 'draft' %}{% url 'manage:setup' m.venue.pk %}{% else %}{% url 'manage:dashboard' m.venue.pk %}{% endif %}" class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:bg-slate-50">
               <span>
                 <span class="block font-semibold">{{ m.venue.name }}</span>
                 <span class="block text-sm text-slate-500">{{ m.venue.area }} · {{ m.get_role_display }}</span>

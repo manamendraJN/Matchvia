@@ -1,0 +1,27 @@
+{% load i18n %}
+{# V2/V25 location: address, about, map pin with "Use my current location", facilities. #}
+{% include "components/field.html" with field=form.address %}
+{% include "components/field.html" with field=form.description %}
+
+<fieldset class="space-y-3">
+  <legend class="text-sm font-medium text-slate-700">{% translate "Map location" %}</legend>
+  {% if can_edit %}
+    <p class="text-sm text-slate-600">{% translate "Tap the map or drag the pin to where the venue is." %}</p>
+    <div id="venue-map" class="h-72 w-full rounded-xl ring-1 ring-slate-200"
+         data-venue-map data-lat="{{ form.latitude.id_for_label }}" data-lng="{{ form.longitude.id_for_label }}"
+         data-outside="{% translate 'The pin is outside Sri Lanka.' %}" data-status="geo-status"></div>
+    <button type="button" class="w-full rounded-lg border border-green-700 px-4 py-3 font-semibold text-green-800 hover:bg-green-50"
+            data-geolocate data-lat="{{ form.latitude.id_for_label }}" data-lng="{{ form.longitude.id_for_label }}" data-status="geo-status"
+            data-waiting="{% translate 'Finding your location…' %}" data-done="{% translate 'Location filled in. Save to keep it.' %}"
+            data-failed="{% translate 'Could not get your location. Drag the pin instead.' %}">
+      {% translate "Use my current location" %}
+    </button>
+    <p id="geo-status" class="text-sm text-slate-600" role="status">{% translate "Use this when you are at the venue." %}</p>
+  {% endif %}
+  <div class="grid grid-cols-2 gap-3">
+    {% include "components/field.html" with field=form.latitude %}
+    {% include "components/field.html" with field=form.longitude %}
+  </div>
+</fieldset>
+
+{% include "components/field.html" with field=form.facilities %}

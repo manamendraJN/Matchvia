@@ -21,9 +21,10 @@
         {% translate "Waiting for approval. You can already add walk-ins and phone bookings. Players can't book online yet." %}
       </p>
     {% elif venue.status == "draft" %}
-      <p class="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
-        {% translate "Not live yet. Finish your venue details and submit it for approval." %}
-      </p>
+      <div class="space-y-3 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
+        <p>{% translate "Not live yet. Finish your venue details and submit it for approval." %}</p>
+        {% if can_edit %}<a href="{% url 'manage:setup' venue.pk %}" class="inline-block rounded-lg bg-green-700 px-4 py-2 font-semibold text-white hover:bg-green-800">{% translate "Continue setup" %}</a>{% endif %}
+      </div>
     {% elif venue.status == "rejected" %}
       <div class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-900" role="status">
         <p class="font-semibold">{% translate "Not approved" %}</p>

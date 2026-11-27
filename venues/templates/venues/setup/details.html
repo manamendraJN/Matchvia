@@ -1,0 +1,13 @@
+{% extends "venues/setup/_frame.html" %}
+{% load i18n %}
+
+{% block setup_content %}
+  <form method="post" class="space-y-4" novalidate>
+    {% csrf_token %}
+    {% include "components/form_errors.html" %}
+    {% include "components/field.html" with field=form.name %}
+    {% include "components/field.html" with field=form.area %}
+    {% include "components/field.html" with field=form.phone %}
+    <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white hover:bg-green-800">{% translate "Next" %}</button>
+  </form>
+{% endblock %}

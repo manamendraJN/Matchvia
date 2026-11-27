@@ -1,0 +1,16 @@
+{% extends "venues/setup/_frame.html" %}
+{% load i18n %}
+
+{% block setup_content %}
+  <form method="post" class="space-y-4" novalidate>
+    {% csrf_token %}
+    <h2 class="font-semibold">{% translate "Edit court" %}</h2>
+    {% include "components/form_errors.html" %}
+    {% include "components/field.html" with field=form.name %}
+    {% include "components/field.html" with field=form.sports %}
+    {% include "components/field.html" with field=form.is_indoor %}
+    {% include "components/field.html" with field=form.slot_minutes %}
+    <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white hover:bg-green-800">{% translate "Save court" %}</button>
+    <a href="{% url 'manage:setup_courts' venue.pk %}" class="block text-center text-sm text-slate-600 hover:underline">{% translate "Cancel" %}</a>
+  </form>
+{% endblock %}

@@ -1,0 +1,5 @@
+{% load static %}
+{# Leaflet (vendored, static/vendor/README.md) and the pin script, only on pages with the map. #}
+<link rel="stylesheet" href="{% static 'vendor/leaflet/leaflet.css' %}" nonce="{{ csp_nonce }}">
+<script src="{% static 'vendor/leaflet/leaflet.js' %}" nonce="{{ csp_nonce }}" defer></script>
+<script src="{% static 'js/venue_map.js' %}" nonce="{{ csp_nonce }}" defer></script>

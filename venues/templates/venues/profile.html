@@ -1,5 +1,7 @@
 {% extends "venues/_layout.html" %}
-{% load i18n %}
+{% load i18n static %}
+
+{% block head %}{% include "venues/_map_assets.html" %}{% endblock %}
 
 {% block venue_content %}
   <div class="space-y-8">
@@ -10,27 +12,7 @@
       {% include "components/field.html" with field=form.name %}
       {% include "components/field.html" with field=form.area %}
       {% include "components/field.html" with field=form.phone %}
-      {% include "components/field.html" with field=form.address %}
-      {% include "components/field.html" with field=form.description %}
-
-      <fieldset class="space-y-3">
-        <legend class="text-sm font-medium text-slate-700">{% translate "Map location" %}</legend>
-        {% if can_edit %}
-          <button type="button" class="w-full rounded-lg border border-green-700 px-4 py-3 font-semibold text-green-800 hover:bg-green-50"
-                  data-geolocate data-lat="{{ form.latitude.id_for_label }}" data-lng="{{ form.longitude.id_for_label }}" data-status="geo-status"
-                  data-waiting="{% translate 'Finding your location…' %}" data-done="{% translate 'Location filled in. Save to keep it.' %}"
-                  data-failed="{% translate 'Could not get your location. Type it in instead.' %}">
-            {% translate "Use my current location" %}
-          </button>
-          <p id="geo-status" class="text-sm text-slate-600" role="status">{% translate "Use this when you are at the venue." %}</p>
-        {% endif %}
-        <div class="grid grid-cols-2 gap-3">
-          {% include "components/field.html" with field=form.latitude %}
-          {% include "components/field.html" with field=form.longitude %}
-        </div>
-      </fieldset>
-
-      {% include "components/field.html" with field=form.facilities %}
+      {% include "venues/_location_fields.html" %}
 
       {% if can_edit %}
         <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white hover:bg-green-800">
@@ -39,61 +21,6 @@
       {% endif %}
     </form>
 
-    <section class="space-y-4">
-      <h2 class="text-lg font-semibold">{% translate "Photos" %}</h2>
-      {% if photos %}
-        <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {% for photo in photos %}
-            <li class="space-y-2">
-              <img src="{{ photo.image.url }}" alt="{% translate 'Venue photo' %}" loading="lazy" class="aspect-[4/3] w-full rounded-lg object-cover">
-              {% if can_edit %}
-                <form method="post" action="{% url 'manage:photo_remove' venue.pk photo.pk %}">
-                  {% csrf_token %}
-                  <button type="submit" class="text-sm font-medium text-red-700 hover:underline">{% translate "Remove" %}</button>
-                </form>
-              {% endif %}
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="text-sm text-slate-600">{% translate "No photos yet. Venues with photos get more bookings." %}</p>
-      {% endif %}
-
-      {% if can_edit %}
-        {% if photos|length < max_photos %}
-          <form method="post" action="{% url 'manage:photo_add' venue.pk %}" enctype="multipart/form-data" class="space-y-2">
-            {% csrf_token %}
-            {{ upload_form.image }}
-            <p class="text-sm text-slate-500">{% blocktranslate %}JPG, PNG or WebP, up to 5 MB. Up to {{ max_photos }} photos.{% endblocktranslate %}</p>
-            <button type="submit" class="rounded-lg bg-green-700 px-4 py-2 font-semibold text-white hover:bg-green-800">{% translate "Add photo" %}</button>
-          </form>
-        {% endif %}
-      {% endif %}
-    </section>
-
-    <section class="grid gap-6 sm:grid-cols-2">
-      <div class="space-y-2">
-        <h2 class="text-lg font-semibold">{% translate "Logo" %}</h2>
-        {% if venue.logo %}<img src="{{ venue.logo.url }}" alt="{% translate 'Venue logo' %}" class="size-24 rounded-lg bg-white object-contain ring-1 ring-slate-200">{% endif %}
-        {% if can_edit %}
-          <form method="post" action="{% url 'manage:logo' venue.pk %}" enctype="multipart/form-data" class="space-y-2">
-            {% csrf_token %}
-            {{ upload_form.image }}
-            <button type="submit" class="rounded-lg border border-slate-300 bg-white px-4 py-2 font-semibold text-slate-800 hover:bg-slate-100">{% translate "Upload logo" %}</button>
-          </form>
-        {% endif %}
-      </div>
-      <div class="space-y-2">
-        <h2 class="text-lg font-semibold">{% translate "Cover photo" %}</h2>
-        {% if venue.cover_photo %}<img src="{{ venue.cover_photo.url }}" alt="{% translate 'Cover photo' %}" class="aspect-[16/9] w-full rounded-lg object-cover">{% endif %}
-        {% if can_edit %}
-          <form method="post" action="{% url 'manage:cover' venue.pk %}" enctype="multipart/form-data" class="space-y-2">
-            {% csrf_token %}
-            {{ upload_form.image }}
-            <button type="submit" class="rounded-lg border border-slate-300 bg-white px-4 py-2 font-semibold text-slate-800 hover:bg-slate-100">{% translate "Upload cover photo" %}</button>
-          </form>
-        {% endif %}
-      </div>
-    </section>
+    {% include "venues/_photos.html" %}
   </div>
 {% endblock %}

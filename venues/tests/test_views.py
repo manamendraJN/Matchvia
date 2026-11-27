@@ -41,7 +41,7 @@ def test_create_venue_flow(owner_client, owner):
     )
 
     venue = Venue.objects.get(name="Kick Off Arena")
-    assert response.url == url("profile", venue)
+    assert response.url == url("setup_location", venue)  # step 2 of the setup (V2)
     assert venue.phone == "+94779998888"
     assert venue.area.slug == "kotte"
     assert VenueMembership.objects.get(venue=venue).role == MemberRole.OWNER

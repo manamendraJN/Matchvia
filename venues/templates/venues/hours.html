@@ -4,29 +4,7 @@
 {% block venue_content %}
   <form method="post" action="{% url 'manage:hours' venue.pk %}" class="space-y-4" novalidate>
     {% csrf_token %}
-    {{ formset.management_form }}
-    <div class="space-y-1">
-      <h2 class="text-lg font-semibold">{% translate "Opening hours" %}</h2>
-      <p class="text-sm text-slate-600">{% translate "Late closing times like 1:00 am belong to the day you opened." %}</p>
-    </div>
-    {% for error in formset.non_form_errors %}<p class="text-sm text-red-700">{{ error }}</p>{% endfor %}
-
-    <ul class="space-y-3">
-      {% for form in formset %}
-        <li class="space-y-2 rounded-xl border border-slate-200 bg-white p-3">
-          {{ form.weekday }}
-          <div class="flex items-center justify-between">
-            <p class="font-semibold">{{ form.weekday_label }}</p>
-            <label class="flex items-center gap-2 text-sm">{{ form.is_closed }} {% translate "Closed" %}</label>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div class="space-y-1"><label for="{{ form.opens_minute.id_for_label }}" class="text-sm text-slate-600">{% translate "Opens" %}</label>{{ form.opens_minute }}</div>
-            <div class="space-y-1"><label for="{{ form.closes_minute.id_for_label }}" class="text-sm text-slate-600">{% translate "Closes" %}</label>{{ form.closes_minute }}</div>
-          </div>
-          {% for error in form.non_field_errors %}<p class="text-sm text-red-700">{{ error }}</p>{% endfor %}
-        </li>
-      {% endfor %}
-    </ul>
+    {% include "venues/_hours_fields.html" %}
 
     {% if can_edit %}
       <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white hover:bg-green-800">{% translate "Save hours" %}</button>

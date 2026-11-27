@@ -4,7 +4,7 @@ from datetime import date, datetime
 
 from django import template
 
-from core import formatting
+from core import formatting, timeutils
 from core.phone import format_local
 
 register = template.Library()
@@ -36,3 +36,9 @@ def lkr(value) -> str:
 def local_phone(value: str) -> str:
     """{{ venue.phone|local_phone }} -> '077 123 4567'"""
     return format_local(value)
+
+
+@register.filter
+def minute_label(value) -> str:
+    """Operating minute -> "6:00 am" ("1:00 am" for 1500, the night after)."""
+    return timeutils.minute_label(int(value))

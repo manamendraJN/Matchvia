@@ -4,9 +4,13 @@ Views stay thin. Every view that takes a venue id gets the venue from a decorato
 decorators.py (404 unless a member), and every lookup inside uses ``.for_venue(venue)``.
 """
 
+from functools import wraps
+
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _lazy
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST
 
@@ -20,15 +24,29 @@ from .decorators import members_only, members_view_owner_edit, owner_only
 from .forms import (
     CourtForm,
     CourtPriceForm,
+    CourtSetupForm,
     DayHoursFormSet,
     ImageUploadForm,
     PeakPeriodFormSet,
     StaffForm,
     VenueCreateForm,
+    VenueDetailsForm,
+    VenueLocationForm,
     VenueProfileForm,
 )
 from .models import Court, MemberRole, OpeningHours, VenueMembership, VenuePhoto
 
+# Setup steps (screens 3.1): number -> (URL name, title shown as "Step 2 of 6 · Location").
+STEPS = {
+    1: ("setup_details", _lazy("Details")),
+    2: ("setup_location", _lazy("Location and photos")),
+    3: ("setup_courts", _lazy("Courts")),
+    4: ("setup_hours", _lazy("Opening hours")),
+    5: ("setup_prices", _lazy("Prices and peak times")),
+    6: ("setup_review", _lazy("Review and submit")),
+}
+
+SETUP_COURT_FIELDS = ["name", "sports", "is_indoor", "slot_minutes"]  # prices come in step 5
 COURT_FIELDS = [
     "name",
     "sports",
@@ -74,12 +92,18 @@ def create(request):
     )
     if request.method == "POST" and form.is_valid():
         venue = services.create_venue(owner=request.user, **form.cleaned_data)
-        messages.success(request, _("Your venue is created. Add the location and photos next."))
-        return redirect("manage:profile", venue_id=venue.pk)
-    return render(request, "venues/create.html", {"form": form})
+        return redirect("manage:setup_location", venue_id=venue.pk)
+    return render(request, "venues/create.html", {"form": form, "step": 1, "steps": STEPS})
 
 
 # ---------------------------------------------------------------- profile and photos (V2, V25)
+
+
+def _back_to_photos(request, venue):
+    """Photo forms post a ``return_to`` of "setup" from setup step 2; otherwise the Venue tab."""
+    if request.POST.get("return_to") == "setup":
+        return redirect("manage:setup_location", venue_id=venue.pk)
+    return redirect("manage:profile", venue_id=venue.pk)
 
 
 @members_view_owner_edit
@@ -130,7 +154,7 @@ def photo_add(request, venue):
             messages.error(request, exc.message)
         else:
             messages.success(request, _("Photo added."))
-    return redirect("manage:profile", venue_id=venue.pk)
+    return _back_to_photos(request, venue)
 
 
 @owner_only
@@ -139,7 +163,7 @@ def photo_remove(request, venue, photo_id):
     photo = get_object_or_404(VenuePhoto.objects.for_venue(venue), pk=photo_id)
     services.remove_photo(venue, request.user, photo.pk)
     messages.success(request, _("Photo removed."))
-    return redirect("manage:profile", venue_id=venue.pk)
+    return _back_to_photos(request, venue)
 
 
 @owner_only
@@ -148,7 +172,7 @@ def image_upload(request, venue, kind):
     form = ImageUploadForm(request.POST, request.FILES)
     if not form.is_valid():
         messages.error(request, _("Choose an image to upload."))
-        return redirect("manage:profile", venue_id=venue.pk)
+        return _back_to_photos(request, venue)
     setter = {"logo": services.set_logo, "cover": services.set_cover_photo}[kind]
     try:
         setter(venue, request.user, form.cleaned_data["image"])
@@ -156,7 +180,7 @@ def image_upload(request, venue, kind):
         messages.error(request, exc.message)
     else:
         messages.success(request, _("Image saved."))
-    return redirect("manage:profile", venue_id=venue.pk)
+    return _back_to_photos(request, venue)
 
 
 @owner_only
@@ -166,6 +190,8 @@ def submit(request, venue):
         services.submit_for_approval(venue, request.user)
     except RuleViolation as exc:
         messages.error(request, exc.message)
+        if services.in_setup(venue):
+            return redirect("manage:setup_review", venue_id=venue.pk)
     else:
         messages.success(
             request,
@@ -242,9 +268,8 @@ def court_toggle(request, venue, court_id):
 # ---------------------------------------------------------------- opening hours (V4, V22)
 
 
-@members_view_owner_edit
-@require_http_methods(["GET", "POST"])
-def hours(request, venue):
+def _hours_formset(request, venue):
+    """The opening-hours formset; on a valid POST it saves. Returns (formset, saved)."""
     rows = OpeningHours.objects.for_venue(venue)
     initial = [
         {
@@ -271,8 +296,17 @@ def hours(request, venue):
         except (RuleViolation, ValueError) as exc:
             messages.error(request, getattr(exc, "message", "") or _("Check the hours."))
         else:
-            messages.success(request, _("Opening hours saved. Existing bookings stay booked."))
-            return redirect("manage:hours", venue_id=venue.pk)
+            return formset, True
+    return formset, False
+
+
+@members_view_owner_edit
+@require_http_methods(["GET", "POST"])
+def hours(request, venue):
+    formset, saved = _hours_formset(request, venue)
+    if saved:
+        messages.success(request, _("Opening hours saved. Existing bookings stay booked."))
+        return redirect("manage:hours", venue_id=venue.pk)
     if not _can_edit(venue):
         _read_only(formset)
     return render(request, "venues/hours.html", _context(venue, formset=formset))
@@ -281,9 +315,11 @@ def hours(request, venue):
 # ---------------------------------------------------------------- prices and peak times (V5, V23)
 
 
-@members_view_owner_edit
-@require_http_methods(["GET", "POST"])
-def prices(request, venue):
+def _price_forms(request, venue):
+    """Court price forms and the peak-times formset; a valid POST saves.
+
+    Returns (court_forms, peak_formset, saved).
+    """
     venue_courts = list(Court.objects.for_venue(venue).filter(is_active=True))
     data = request.POST or None
     # One form per court of this venue; court ids never come from the request (data-model 6.2).
@@ -330,9 +366,17 @@ def prices(request, venue):
         except RuleViolation as exc:
             messages.error(request, exc.message)
         else:
-            messages.success(request, _("Prices saved. New prices apply to new bookings only."))
-            return redirect("manage:prices", venue_id=venue.pk)
+            return court_forms, peak_formset, True
+    return court_forms, peak_formset, False
 
+
+@members_view_owner_edit
+@require_http_methods(["GET", "POST"])
+def prices(request, venue):
+    court_forms, peak_formset, saved = _price_forms(request, venue)
+    if saved:
+        messages.success(request, _("Prices saved. New prices apply to new bookings only."))
+        return redirect("manage:prices", venue_id=venue.pk)
     if not _can_edit(venue):
         _read_only(peak_formset, *(form for _court, form in court_forms))
     context = _context(venue, court_forms=court_forms, peak_formset=peak_formset)
@@ -375,3 +419,183 @@ def staff_remove(request, venue, membership_id):
     else:
         messages.success(request, _("Removed. Their access has ended."))
     return redirect("manage:staff", venue_id=venue.pk)
+
+
+# ---------------------------------------------------------------- setup wizard (V1-V6)
+# A draft venue is set up step by step, "Step 2 of 6 · Location", and setup reopens where the
+# owner stopped (screens 3.1). Steps save through the same services as the tabs (V21-V25).
+
+
+def _setup(venue, step, **extra):
+    title = STEPS[step][1]
+    return {
+        "venue": venue,
+        "can_edit": True,
+        "step": step,
+        "steps": STEPS,
+        "step_title": title,
+        "back_url": reverse(f"manage:{STEPS[step - 1][0]}", args=[venue.pk]) if step > 1 else "",
+        **extra,
+    }
+
+
+def _next_step(request, venue, finished: int):
+    services.finish_setup_step(venue, request.user, finished)
+    return redirect(f"manage:{STEPS[finished + 1][0]}", venue_id=venue.pk)
+
+
+def _setup_only(view):
+    """Setup pages are for draft venues; after submitting, the tabs are used instead."""
+
+    @wraps(view)
+    def wrapper(request, venue, *args, **kwargs):
+        if not services.in_setup(venue):
+            return redirect("manage:dashboard", venue_id=venue.pk)
+        return view(request, venue, *args, **kwargs)
+
+    return wrapper
+
+
+@owner_only
+@_setup_only
+def setup(request, venue):
+    """Continue where the owner stopped."""
+    url_name, _title = STEPS[services.next_setup_step(venue)]
+    return redirect(f"manage:{url_name}", venue_id=venue.pk)
+
+
+@owner_only
+@_setup_only
+@require_http_methods(["GET", "POST"])
+def setup_details(request, venue):
+    initial = {"name": venue.name, "area": venue.area_id, "phone": format_local(venue.phone)}
+    form = VenueDetailsForm(request.POST or None, initial=initial)
+    if request.method == "POST" and form.is_valid():
+        services.update_profile(venue, request.user, **form.cleaned_data)
+        return _next_step(request, venue, 1)
+    return render(request, "venues/setup/details.html", _setup(venue, 1, form=form))
+
+
+@owner_only
+@_setup_only
+@require_http_methods(["GET", "POST"])
+def setup_location(request, venue):
+    initial = {
+        "address": venue.address,
+        "description": venue.description,
+        "latitude": venue.latitude,
+        "longitude": venue.longitude,
+        "facilities": venue.facilities,
+    }
+    form = VenueLocationForm(request.POST or None, initial=initial)
+    if request.method == "POST" and form.is_valid():
+        services.update_profile(venue, request.user, **form.cleaned_data)
+        return _next_step(request, venue, 2)
+    context = _setup(
+        venue,
+        2,
+        form=form,
+        upload_form=ImageUploadForm(),
+        photos=VenuePhoto.objects.for_venue(venue),
+        max_photos=services.MAX_PHOTOS,
+        return_to="setup",
+    )
+    return render(request, "venues/setup/location.html", context)
+
+
+@owner_only
+@_setup_only
+@require_http_methods(["GET", "POST"])
+def setup_courts(request, venue):
+    """Courts so far, a form to add one more, and Next (needs at least one court)."""
+    venue_courts = Court.objects.for_venue(venue)
+    count = venue_courts.count()
+    adding = request.method == "POST" and "add" in request.POST
+    form = CourtSetupForm(
+        request.POST if adding else None,
+        initial={
+            "name": _("Court %(n)d") % {"n": count + 1},
+            "is_indoor": True,
+            "slot_minutes": 60,
+        },
+    )
+    if adding and form.is_valid():
+        try:
+            services.create_court(
+                venue, request.user, off_peak_price_lkr=0, peak_price_lkr=0, **form.cleaned_data
+            )
+        except RuleViolation as exc:
+            form.add_error("name", exc.message)
+        else:
+            messages.success(request, _("Court added."))
+            return redirect("manage:setup_courts", venue_id=venue.pk)
+    elif request.method == "POST" and not adding:
+        if venue_courts.filter(is_active=True).exists():
+            return _next_step(request, venue, 3)
+        messages.error(request, _("Add at least one court."))
+    return render(
+        request, "venues/setup/courts.html", _setup(venue, 3, form=form, courts=venue_courts)
+    )
+
+
+@owner_only
+@_setup_only
+@require_http_methods(["GET", "POST"])
+def setup_court_edit(request, venue, court_id):
+    court = get_object_or_404(Court.objects.for_venue(venue), pk=court_id)
+    form = CourtSetupForm(
+        request.POST or None,
+        initial={
+            name: getattr(court, name) for name in ("name", "sports", "is_indoor", "slot_minutes")
+        },
+    )
+    if request.method == "POST" and form.is_valid():
+        try:
+            services.update_court(venue, request.user, court.pk, **form.cleaned_data)
+        except RuleViolation as exc:
+            form.add_error("name", exc.message)
+        else:
+            return redirect("manage:setup_courts", venue_id=venue.pk)
+    context = _setup(venue, 3, form=form, court=court)
+    return render(request, "venues/setup/court_edit.html", context)
+
+
+@owner_only
+@_setup_only
+@require_http_methods(["GET", "POST"])
+def setup_hours(request, venue):
+    formset, saved = _hours_formset(request, venue)
+    if saved:
+        return _next_step(request, venue, 4)
+    return render(request, "venues/setup/hours.html", _setup(venue, 4, formset=formset))
+
+
+@owner_only
+@_setup_only
+@require_http_methods(["GET", "POST"])
+def setup_prices(request, venue):
+    court_forms, peak_formset, saved = _price_forms(request, venue)
+    if saved:
+        return _next_step(request, venue, 5)
+    context = _setup(venue, 5, court_forms=court_forms, peak_formset=peak_formset)
+    return render(request, "venues/setup/prices.html", context)
+
+
+@owner_only
+@_setup_only
+def setup_review(request, venue):
+    """V6: everything on one page with Edit links; Submit for approval."""
+    venue_courts = Court.objects.for_venue(venue).filter(is_active=True)
+    context = _setup(
+        venue,
+        6,
+        courts=venue_courts,
+        free_courts=[
+            c.name for c in venue_courts if not c.off_peak_price_lkr and not c.peak_price_lkr
+        ],
+        hours=OpeningHours.objects.for_venue(venue),
+        peaks=PeakPeriod.objects.for_venue(venue),
+        photos=VenuePhoto.objects.for_venue(venue),
+        missing=services.missing_for_submission(venue),
+    )
+    return render(request, "venues/setup/review.html", context)

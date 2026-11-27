@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load i18n %}
+{# Frame for the setup steps of a draft venue (V1-V6): step header, content, Back. #}
+
+{% block title %}{{ step_title }} · {{ venue.name }} · Matchvia{% endblock %}
+
+{% block content %}
+  <section class="space-y-6">
+    <div class="space-y-3">
+      <a href="{% url 'manage:home' %}" class="text-sm text-slate-500 hover:underline">{% translate "My venues" %}</a>
+      <h1 class="text-xl font-bold tracking-tight">{{ venue.name }}</h1>
+      {% include "venues/_step_header.html" %}
+    </div>
+    {% block setup_content %}{% endblock %}
+    <div class="flex items-center justify-between text-sm">
+      {% if back_url %}<a href="{{ back_url }}" class="text-slate-600 hover:underline">← {% translate "Back" %}</a>{% else %}<span></span>{% endif %}
+      <a href="{% url 'manage:dashboard' venue.pk %}" class="text-slate-600 hover:underline">{% translate "Finish later" %}</a>
+    </div>
+  </section>
+{% endblock %}
+
+{% block bottom_nav %}{% endblock %}
