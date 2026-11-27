@@ -47,6 +47,15 @@
     min-width: 0;
   }
 
+  /* Choices hide their radio/checkbox with sr-only (position: absolute). Without a positioned
+     label, those inputs are placed against the page, so the ones at the end of a scrolling day
+     row still widened the page sideways. Anchor each hidden input to its own label. */
+  label:has(> .sr-only),
+  label:has(> input[type="radio"]),
+  label:has(> input[type="checkbox"]) {
+    position: relative;
+  }
+
   h1,
   h2,
   h3 {
@@ -140,7 +149,7 @@
   @apply size-5 shrink-0 accent-green-700;
 }
 @utility choice {
-  @apply flex min-h-12 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 transition-colors duration-150 hover:border-green-300 has-checked:border-green-700 has-checked:bg-green-50;
+  @apply relative flex min-h-12 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 transition-colors duration-150 hover:border-green-300 has-checked:border-green-700 has-checked:bg-green-50;
 }
 
 /* ---- labels that carry meaning: colour + text (screens 1.6) ---- */
@@ -171,10 +180,10 @@
 /* ---- radio choices shown as pills / segments; the input is visually hidden, so the label
    shows the keyboard focus ring (WCAG 2.4.7) ---- */
 @utility pill {
-  @apply flex min-h-12 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white px-4 text-sm font-semibold whitespace-nowrap text-slate-700 transition-colors duration-150 hover:border-green-600 has-checked:border-green-700 has-checked:bg-green-700 has-checked:text-white has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-green-600;
+  @apply relative flex min-h-12 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white px-4 text-sm font-semibold whitespace-nowrap text-slate-700 transition-colors duration-150 hover:border-green-600 has-checked:border-green-700 has-checked:bg-green-700 has-checked:text-white has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-green-600;
 }
 @utility segment {
-  @apply flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-3 text-center font-semibold text-slate-800 transition-colors duration-150 hover:border-green-600 has-checked:border-green-700 has-checked:bg-green-700 has-checked:text-white has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-green-600;
+  @apply relative flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-3 text-center font-semibold text-slate-800 transition-colors duration-150 hover:border-green-600 has-checked:border-green-700 has-checked:bg-green-700 has-checked:text-white has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-green-600;
 }
 @utility pill-link {
   @apply flex min-h-12 shrink-0 items-center rounded-full border border-slate-300 bg-white px-4 text-sm font-semibold whitespace-nowrap text-slate-700 transition-colors duration-150 hover:border-green-600;

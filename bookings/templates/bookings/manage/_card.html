@@ -1,7 +1,7 @@
 {% load i18n matchvia %}
 {# One booking or block in the calendar. Colour plus an icon and a text label, never colour alone (screens 1.6). #}
 <a href="{% url 'manage:booking_detail' venue.pk b.pk %}"
-   class="flex h-full min-h-12 flex-col rounded-lg border-l-4 px-2 py-1.5 text-left text-xs leading-tight shadow-sm ring-1 transition-shadow duration-150 hover:shadow-md
+   class="relative flex h-full min-h-12 flex-col rounded-lg border-l-4 px-2 py-1.5 text-left text-xs leading-tight shadow-sm ring-1 transition-shadow duration-150 hover:shadow-md
    {% if b.kind == 'block' %}striped border-slate-500 text-slate-700 ring-slate-200
    {% elif b.status == 'cancelled' %}border-slate-300 bg-white text-slate-400 line-through ring-slate-200
    {% elif b.status == 'no_show' %}border-red-600 bg-white text-red-800 ring-red-300

@@ -91,3 +91,11 @@ def test_fieldsets_can_shrink_so_scrolling_rows_stay_inside():
     """Regression: the day pills in a fieldset made the whole home page scroll sideways."""
     source = (Path(settings.BASE_DIR) / "assets" / "tailwind.css").read_text(encoding="utf-8")
     assert re.search(r"fieldset \{\s*min-width: 0;\s*\}", source)
+
+
+def test_hidden_choice_inputs_are_anchored_to_their_labels():
+    """Regression: sr-only radios at the end of the day row widened the page sideways."""
+    source = (Path(settings.BASE_DIR) / "assets" / "tailwind.css").read_text(encoding="utf-8")
+    assert re.search(r"label:has\(> \.sr-only\),[^{]*\{\s*position: relative;", source)
+    for name in ("pill", "segment", "choice"):
+        assert re.search(rf"@utility {name} \{{\s*@apply relative ", source), name
