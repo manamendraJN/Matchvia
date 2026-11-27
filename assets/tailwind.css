@@ -176,3 +176,12 @@
 @utility pill-link-on {
   @apply flex min-h-12 shrink-0 items-center rounded-full border border-green-700 bg-green-700 px-4 text-sm font-semibold whitespace-nowrap text-white;
 }
+
+/* Blocks are grey and striped in the calendar (screens 1.6). */
+@utility striped {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--color-slate-200) 0 6px,
+    var(--color-slate-100) 6px 12px
+  );
+}

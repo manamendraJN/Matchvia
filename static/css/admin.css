@@ -1,0 +1,28 @@
+/* Matchvia colours for the Django admin (D16 keeps the admin; this only re-themes it). */
+:root,
+html[data-theme="light"] {
+  --primary: #15803d;
+  --secondary: #14532d;
+  --accent: #bbf7d0;
+  --primary-fg: #ffffff;
+  --header-color: #dcfce7;
+  --header-branding-color: #ffffff;
+  --header-bg: #14532d;
+  --header-link-color: #ffffff;
+  --breadcrumbs-bg: #166534;
+  --breadcrumbs-fg: #dcfce7;
+  --breadcrumbs-link-fg: #ffffff;
+  --link-fg: #15803d;
+  --link-hover-color: #14532d;
+  --link-selected-fg: #166534;
+  --button-bg: #15803d;
+  --button-hover-bg: #166534;
+  --default-button-bg: #14532d;
+  --default-button-hover-bg: #052e16;
+  --selected-row: #f0fdf4;
+}
+
+#site-name a {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}

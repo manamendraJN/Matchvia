@@ -145,7 +145,7 @@ def test_calendar_page(staff_client, venue, court, clock):
     assert "Tue 8 Dec" in html
     assert "Kasun" in html
     assert "Walk-in" in html
-    assert "+ free" in html
+    assert "free</a>" in html  # free cell with a plus icon
     assert "1 booking" in html
     assert "Rs. 4,000 expected" in html
     assert 'hx-trigger="every 30s"' in html
