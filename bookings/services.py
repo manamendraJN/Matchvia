@@ -668,6 +668,75 @@ def link_phone_bookings(user) -> int:
     return VenueCustomer.objects.filter(phone=user.phone, user__isnull=True).update(user=user)
 
 
+# ---------------------------------------------------------------- account deletion (BR-25)
+
+
+def _deleted_users_customers(user, phone: str | None):
+    """The venue customer rows that are this person: linked to the account or on their number."""
+    rows = VenueCustomer.objects.filter(user=user)
+    if phone:
+        rows = rows | VenueCustomer.objects.filter(phone=phone)
+    return rows
+
+
+def upcoming_count_for_deletion(user, *, now: datetime | None = None) -> int:
+    """How many upcoming bookings deleting this account would cancel (shown on P19)."""
+    customers = _deleted_users_customers(user, user.phone)
+    return Booking.objects.filter(
+        venue_customer__in=customers,
+        kind=Kind.BOOKING,
+        status__in=ACTIVE_STATUSES,
+        start_at__gt=_now(now),
+    ).count()
+
+
+def cancel_for_deleted_account(user, *, phone: str | None, name: str, now: datetime | None = None):
+    """Account deletion, inside the caller's transaction (BR-25, data-model 9).
+
+    Cancels the person's future bookings and weekly bookings, tells each affected venue's owners
+    by SMS (no name or number in it), and replaces the name on all their bookings, past ones
+    included. Returns the number of bookings cancelled. Games already started are left alone.
+    """
+    now = _now(now)
+    customers = _deleted_users_customers(user, phone)
+    upcoming = (
+        Booking.objects.filter(
+            venue_customer__in=customers,
+            kind=Kind.BOOKING,
+            status__in=ACTIVE_STATUSES,
+            start_at__gt=now,
+        )
+        .select_for_update(of=("self",))
+        .select_related("venue", "court")
+        .order_by("start_at")
+    )
+    by_venue: dict = {}
+    for booking in upcoming:
+        _cancel(booking, actor=user, reason=CancelReason.CUSTOMER_REQUEST, late=False, now=now)
+        by_venue.setdefault(booking.venue, []).append(booking)
+
+    open_series = RecurringSeries.objects.filter(
+        venue_customer__in=customers,
+        status__in=[SeriesStatus.PENDING, SeriesStatus.APPROVED],
+    )
+    open_series.update(status=SeriesStatus.CANCELLED, cancelled_from=operating_date(now))
+
+    for venue, cancelled in by_venue.items():
+        body = notifications.render_sms(
+            "account_deleted_venue",
+            cancelled=len(cancelled),
+            venue=venue.name,
+            when=notifications.booking_context(cancelled[0])["when"],
+        )
+        for owner_phone in venue_services.owner_phones(venue):
+            notifications.queue_sms(
+                to_phone=owner_phone, purpose="venue_notice", body=body, venue=venue
+            )
+
+    Booking.objects.filter(venue_customer__in=customers).update(customer_name=name)
+    return sum(len(cancelled) for cancelled in by_venue.values())
+
+
 # ---------------------------------------------------------------- arrived (C6)
 
 

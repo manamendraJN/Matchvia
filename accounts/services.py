@@ -17,6 +17,7 @@ import hmac
 import logging
 import re
 import secrets
+from dataclasses import dataclass
 from datetime import timedelta
 
 from django.conf import settings
@@ -334,30 +335,113 @@ def set_platform_admin(user: User, *, is_admin: bool, actor: User) -> User:
 # ---------------------------------------------------------------- account deletion
 
 
-def request_deletion_code(user: User, *, ip: str | None) -> OTPChallenge:
-    """Send a code to the user's own phone to confirm deletion (BR-25)."""
+@dataclass(frozen=True)
+class DeletionBlocker:
+    """Something the user must hand over before the account can go (US-P08)."""
+
+    message: str
+    url: str
+
+
+def deletion_blockers(user: User) -> list[DeletionBlocker]:
+    """Venues the user alone owns and teams they captain. Empty means deletion may go ahead."""
+    # Late imports: venues and teams depend on accounts, not the other way round.
+    from django.urls import reverse
+
+    from teams import services as teams
+    from venues import services as venues
+
+    blockers = [
+        DeletionBlocker(
+            message=_(
+                "You own %(venue)s. Add another owner on its Staff page first, "
+                "or ask Matchvia support to close it."
+            )
+            % {"venue": venue.name},
+            url=reverse("manage:staff", args=[venue.pk]),
+        )
+        for venue in venues.sole_owned_venues(user)
+    ]
+    blockers += [
+        DeletionBlocker(
+            message=_("You captain %(team)s. Make another player captain or close the team first.")
+            % {"team": team.name},
+            url=reverse("team_detail", args=[team.pk]),
+        )
+        for team in teams.captained_teams(user)
+    ]
+    return blockers
+
+
+def upcoming_bookings_to_cancel(user: User) -> int:
+    from bookings import services as bookings
+
+    return bookings.upcoming_count_for_deletion(user)
+
+
+def _check_can_delete(user: User) -> None:
     if user.is_deleted or not user.phone:
         raise NotAllowed(_("This account has been deleted."))
+    blockers = deletion_blockers(user)
+    if blockers:
+        raise RuleViolation(blockers[0].message)
+
+
+def request_deletion_code(user: User, *, ip: str | None) -> OTPChallenge:
+    """Send a code to the user's own phone to confirm deletion (BR-25)."""
+    _check_can_delete(user)
     return request_code(phone=user.phone, purpose=OTPChallenge.Purpose.DELETE_ACCOUNT, ip=ip)
 
 
-def delete_account(user: User, *, code: str, ip: str | None) -> None:
-    """Confirm with the code, then anonymise the account immediately (BR-25, data-model 9).
-
-    Removes name and phone, signs the user out everywhere (inactive + unusable password),
-    deletes their OTP rows and removes their number from the SMS log. Consent records stay as
-    proof of consent. The user row itself is kept so history stays valid.
-
-    S26 adds the steps that need other apps: refuse while the user owns a venue or captains
-    a team, cancel future bookings and notify venues, anonymise VenueCustomer rows and
-    booking names.
-    """
-    if user.is_deleted or not user.phone:
-        raise NotAllowed(_("This account has been deleted."))
+def delete_account(user: User, *, code: str, ip: str | None) -> int:
+    """Confirm with the code, then erase the account immediately (BR-25). See ``_erase``."""
+    _check_can_delete(user)
     verify_code(phone=user.phone, code=code, purpose=OTPChallenge.Purpose.DELETE_ACCOUNT, ip=ip)
+    cancelled = _erase(user)
+    logger.info("account.deleted user_id=%s by=self", user.pk)
+    return cancelled
+
+
+def delete_account_on_request(user: User, *, admin: User) -> int:
+    """A platform admin carries out a deletion request received by phone or email (PDPA).
+
+    Same steps as self-service deletion, without the code. The admin site records who did it
+    in the access log (adminpanel.services). Admins delete their own account themselves.
+    """
+    if not (admin.is_active and admin.is_superuser):
+        raise NotAllowed(_("Only a platform admin can do this."))
+    if admin.pk == user.pk:
+        raise RuleViolation(_("Delete your own account from your account page."))
+    _check_can_delete(user)
+    cancelled = _erase(user)
+    logger.info("account.deleted user_id=%s by_admin=%s", user.pk, admin.pk)
+    return cancelled
+
+
+def _erase(user: User) -> int:
+    """Anonymise everything about the person, in one transaction (data-model 9).
+
+    Cancels future bookings and weekly bookings and tells each venue; puts "Deleted user" on
+    their bookings and venue customer rows and removes the number; ends their team and venue
+    roles; deletes OTP rows and invites to their number; removes the number from the SMS log;
+    and anonymises the account, which signs them out everywhere (inactive + unusable password).
+    Consent records stay as proof of consent; the user row stays so history stays valid.
+    Returns the number of bookings cancelled.
+    """
+    from bookings import services as bookings
+    from teams import services as teams
+    from venues import services as venues
+
     with transaction.atomic():
         user = User.objects.select_for_update().get(pk=user.pk)
         phone = user.phone
+        blockers = deletion_blockers(user)  # checked again under the lock
+        if blockers:
+            raise RuleViolation(blockers[0].message)
+        cancelled = bookings.cancel_for_deleted_account(user, phone=phone, name=DELETED_USER_NAME)
+        venues.forget_customer(user, phone=phone, name=DELETED_USER_NAME)
+        teams.leave_all_teams(user)
+        venues.leave_all_venues(user)
         user.phone = None
         user.name = DELETED_USER_NAME
         user.is_active = False
@@ -370,7 +454,7 @@ def delete_account(user: User, *, code: str, ip: str | None) -> None:
         user.user_permissions.clear()
         OTPChallenge.objects.filter(phone=phone).delete()
         notifications.forget_phone(phone)
-    logger.info("account.deleted user_id=%s", user.pk)
+    return cancelled
 
 
 # ---------------------------------------------------------------- minimum data (PDPA)

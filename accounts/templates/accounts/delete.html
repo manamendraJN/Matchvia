@@ -11,21 +11,33 @@
       <p class="font-semibold">{% translate "This can't be undone." %}</p>
       <ul class="list-disc space-y-1 pl-5">
         <li>{% translate "Your name and mobile number are removed from Matchvia straight away." %}</li>
-        <li>{% translate "Your upcoming bookings are cancelled and the venues are told." %}</li>
+        <li>{% if upcoming %}{% blocktranslate count n=upcoming %}Your upcoming booking is cancelled and the venue is told.{% plural %}Your {{ n }} upcoming bookings are cancelled and the venues are told.{% endblocktranslate %}{% else %}{% translate "You have no upcoming bookings to cancel." %}{% endif %}</li>
+        <li>{% translate "You leave your teams and lose any venue staff access." %}</li>
         <li>{% translate "Venues keep anonymous records of past games (court, time, price) for their counts." %}</li>
         <li>{% translate "You are signed out on every device." %}</li>
       </ul>
     </div>
 
-    <form method="post" action="{% url 'me:delete' %}" class="space-y-3">
-      {% csrf_token %}
-      <p class="text-sm text-slate-600">
-        {% blocktranslate with phone=phone_display %}To confirm, we'll send a code to {{ phone }}.{% endblocktranslate %}
-      </p>
-      <button type="submit" class="w-full rounded-lg bg-red-700 px-4 py-3 font-semibold text-white hover:bg-red-800">
-        {% translate "Send confirmation code" %}
-      </button>
-    </form>
+    {% if blockers %}
+      <div class="space-y-2 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+        <p class="font-semibold">{% translate "Before you can delete your account:" %}</p>
+        <ul class="space-y-2">
+          {% for blocker in blockers %}
+            <li><a href="{{ blocker.url }}" class="underline">{{ blocker.message }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% else %}
+      <form method="post" action="{% url 'me:delete' %}" class="space-y-3">
+        {% csrf_token %}
+        <p class="text-sm text-slate-600">
+          {% blocktranslate with phone=phone_display %}To confirm, we'll send a code to {{ phone }}.{% endblocktranslate %}
+        </p>
+        <button type="submit" class="w-full rounded-lg bg-red-700 px-4 py-3 font-semibold text-white hover:bg-red-800">
+          {% translate "Send confirmation code" %}
+        </button>
+      </form>
+    {% endif %}
 
     <a href="{% url 'me:account' %}" class="block text-center text-sm text-slate-600 hover:underline">{% translate "Keep my account" %}</a>
   </section>

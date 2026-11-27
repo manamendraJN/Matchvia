@@ -195,15 +195,25 @@ def account_view(request):
 def delete_view(request):
     """Explain what deletion does; POST sends the confirmation code (US-P08)."""
     status = 200
-    if request.method == "POST":
+    blockers = services.deletion_blockers(request.user)
+    if request.method == "POST" and not blockers:
         try:
             services.request_deletion_code(request.user, ip=client_ip(request))
         except RateLimited as exc:
             messages.error(request, _wait_message(exc))
             status = 429
+        except RuleViolation as exc:  # a venue or team was taken on a moment ago
+            messages.error(request, exc.message)
+            status = 409
         else:
             return redirect("me:delete_confirm")
-    context = {"phone_display": format_local(request.user.phone)}
+    elif blockers:
+        status = 409 if request.method == "POST" else 200
+    context = {
+        "phone_display": format_local(request.user.phone),
+        "blockers": blockers,
+        "upcoming": services.upcoming_bookings_to_cancel(request.user),
+    }
     return render(request, "accounts/delete.html", context, status=status)
 
 

@@ -28,6 +28,7 @@ TYPICAL = {
     "sport": "Indoor cricket",
     "link": "https://matchvia.lk/t/Ab3dEf6hIj9kLm2nOp5qRw/",
     "weeks": 12,
+    "cancelled": 12,
 }
 
 
@@ -50,6 +51,7 @@ def test_every_template_is_tested():
         "series_rejected",
         "series_expired",
         "team_invite",
+        "account_deleted_venue",
     }
 
 
@@ -76,3 +78,10 @@ def test_sms_text_is_not_html_escaped():
 def test_en_dash_would_break_gsm7():
     assert not services.is_gsm7("7:00 pm–8:00 pm")
     assert services.is_gsm7("7:00 pm-8:00 pm")
+
+
+def test_account_deleted_notice_for_one_booking_fits_one_sms():
+    text = services.render_sms("account_deleted_venue", **{**TYPICAL, "cancelled": 1})
+    assert text.startswith("Matchvia: A player deleted their account. Their booking at")
+    assert services.is_gsm7(text)
+    assert len(text) <= services.SINGLE_SMS_LENGTH, len(text)

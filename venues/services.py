@@ -10,6 +10,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 
 from django.db import transaction
+from django.db.models import Count, Exists, OuterRef, Subquery
 from django.http import Http404
 from django.utils import timezone
 from django.utils.text import slugify
@@ -25,6 +26,7 @@ from .models import (
     MemberRole,
     OpeningHours,
     Venue,
+    VenueCustomer,
     VenueMembership,
     VenuePhoto,
     VenueSettings,
@@ -98,6 +100,53 @@ def memberships_for_user(user):
         .select_related("venue", "venue__area")
         .order_by("venue__name")
     )
+
+
+def owner_phones(venue: Venue) -> list[str]:
+    """Numbers of the venue's active owners, for notices to the venue."""
+    return list(
+        VenueMembership.objects.for_venue(venue)
+        .filter(role=MemberRole.OWNER, user__is_active=True, user__phone__isnull=False)
+        .values_list("user__phone", flat=True)
+    )
+
+
+# Venues that are live or on their way: an owner must hand them over before deleting (US-P08).
+# Drafts and rejected venues were never public, so they don't block deletion.
+HANDOVER_STATUSES = [VenueStatus.PENDING, VenueStatus.APPROVED, VenueStatus.SUSPENDED]
+
+
+def sole_owned_venues(user):
+    """Venues where ``user`` is the only owner and that must be handed over first (US-P08)."""
+    other_owner = VenueMembership.objects.filter(
+        venue=OuterRef("venue"), role=MemberRole.OWNER
+    ).exclude(user=user)
+    venue_ids = (
+        VenueMembership.objects.filter(
+            user=user, role=MemberRole.OWNER, venue__status__in=HANDOVER_STATUSES
+        )
+        .exclude(Exists(other_owner))
+        .values("venue_id")
+    )
+    return Venue.objects.filter(pk__in=venue_ids).order_by("name")
+
+
+def leave_all_venues(user) -> int:
+    """Account deletion: end every owner and staff role the user has. Returns rows removed."""
+    deleted, _rows = VenueMembership.objects.filter(user=user).delete()
+    return deleted
+
+
+def forget_customer(user, *, phone: str | None, name: str) -> int:
+    """Account deletion: remove the person's name and number from every venue's customer book.
+
+    Rows stay (bookings point at them) as "Deleted user" with no number and no account link.
+    Staff notes and block reasons about the person go too. Returns the number of rows changed.
+    """
+    rows = VenueCustomer.objects.filter(user=user)
+    if phone:
+        rows = rows | VenueCustomer.objects.filter(phone=phone)
+    return rows.update(phone=None, name=name, user=None, notes="", block_reason="")
 
 
 def _require_owner(venue: Venue, actor) -> None:
@@ -399,6 +448,30 @@ def submit_for_approval(venue: Venue, actor) -> Venue:
     with transaction.atomic():
         _set_status(venue, VenueStatus.PENDING, by=actor)
     return venue
+
+
+def status_counts() -> dict[str, int]:
+    """Number of venues per status (admin home, A1)."""
+    counts = dict.fromkeys(VenueStatus.values, 0)
+    rows = Venue.objects.values("status").annotate(n=Count("pk")).values_list("status", "n")
+    counts.update(rows)
+    return counts
+
+
+def waiting_for_review():
+    """Venues waiting for approval, oldest first, with one owner's name and number (A1)."""
+    owner = VenueMembership.objects.filter(venue=OuterRef("pk"), role=MemberRole.OWNER).order_by(
+        "created_at", "pk"
+    )
+    return (
+        Venue.objects.filter(status=VenueStatus.PENDING)
+        .select_related("area")
+        .annotate(
+            owner_name=Subquery(owner.values("user__name")[:1]),
+            owner_phone=Subquery(owner.values("user__phone")[:1]),
+        )
+        .order_by("status_changed_at", "pk")
+    )
 
 
 def _require_platform_admin(admin) -> None:
