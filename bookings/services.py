@@ -19,7 +19,6 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from core.exceptions import NotAllowed, RuleViolation, SlotTaken
-from core.formatting import format_lkr, format_range
 from core.phone import INVALID_PHONE_MESSAGE, InvalidPhone, format_local, normalise_phone
 from core.timeutils import operating_date, operating_minute
 from notifications import services as notifications
@@ -174,44 +173,6 @@ def _customer_for(venue, *, phone: str, name: str, user=None) -> VenueCustomer:
     return customer
 
 
-def _notify(booking: Booking, purpose: str, text: str) -> None:
-    phone = booking.venue_customer.phone if booking.venue_customer_id else None
-    if phone:
-        notifications.queue_sms(to_phone=phone, purpose=purpose, body=text)
-
-
-def _confirmation_text(booking: Booking) -> str:
-    return _(
-        "Matchvia: Booking %(ref)s confirmed. %(venue)s, %(court)s, %(when)s. "
-        "%(price)s, pay at the venue. Venue: %(phone)s"
-    ) % {
-        "ref": booking.display_reference,
-        "venue": booking.venue.name,
-        "court": booking.court.name,
-        "when": format_range(booking.start_at, booking.end_at),
-        "price": format_lkr(booking.price_lkr),
-        "phone": format_local(booking.venue.phone),
-    }
-
-
-def _cancellation_text(booking: Booking) -> str:
-    return _("Matchvia: Booking %(ref)s at %(venue)s on %(when)s is cancelled.") % {
-        "ref": booking.display_reference,
-        "venue": booking.venue.name,
-        "when": format_range(booking.start_at, booking.end_at),
-    }
-
-
-def _changed_text(booking: Booking) -> str:
-    return _("Matchvia: Booking %(ref)s changed: %(venue)s, %(court)s, %(when)s. %(price)s.") % {
-        "ref": booking.display_reference,
-        "venue": booking.venue.name,
-        "court": booking.court.name,
-        "when": format_range(booking.start_at, booking.end_at),
-        "price": format_lkr(booking.price_lkr),
-    }
-
-
 def _price_override(venue, role, calculated, price_lkr, reason) -> tuple[int, str]:
     """BR-19: staff may change the calculated price with a reason, if the owner allows it."""
     if price_lkr is None or price_lkr == calculated:
@@ -314,7 +275,8 @@ def create_online_booking(
         )
         _save_checked(booking, insert=True)
         _event(booking, user, EventAction.CREATED, **_snapshot(booking), source=Source.ONLINE)
-        _notify(booking, "booking_confirmation", _confirmation_text(booking))
+        notifications.queue_booking_sms(booking, "booking_confirmation")
+        notifications.schedule_reminder(booking, now=now)
     logger.info("booking.created id=%s venue=%s source=online", booking.pk, venue.pk)
     return booking
 
@@ -391,7 +353,8 @@ def create_staff_booking(
             settings.sms_on_walk_ins if source == Source.WALK_IN else settings.sms_on_phone_bookings
         )
         if wants_sms:
-            _notify(booking, "booking_confirmation", _confirmation_text(booking))
+            notifications.queue_booking_sms(booking, "booking_confirmation")
+        notifications.schedule_reminder(booking)
     logger.info("booking.created id=%s venue=%s source=%s", booking.pk, venue.pk, source)
     return booking
 
@@ -407,6 +370,7 @@ def _cancel(booking: Booking, *, actor, reason: str, late: bool, now: datetime) 
     booking.is_late_cancellation = late
     booking.save()
     _event(booking, actor, EventAction.CANCELLED, reason=reason, late=late)
+    notifications.cancel_reminder(booking)
 
 
 def player_can_cancel(booking: Booking, now: datetime | None = None) -> bool:
@@ -439,7 +403,7 @@ def cancel_by_player(*, user, booking_id, now: datetime | None = None) -> Bookin
                 % {"phone": format_local(booking.venue.phone)}
             )
         _cancel(booking, actor=user, reason=CancelReason.CUSTOMER_REQUEST, late=False, now=now)
-        _notify(booking, "booking_cancelled", _cancellation_text(booking))
+        notifications.queue_booking_sms(booking, "booking_cancelled")
     return booking
 
 
@@ -468,7 +432,7 @@ def cancel_by_staff(
         window = timedelta(hours=venue.settings.cancellation_window_hours)
         late = reason == CancelReason.CUSTOMER_REQUEST and booking.start_at - now <= window
         _cancel(booking, actor=actor, reason=reason, late=late, now=now)
-        _notify(booking, "booking_cancelled", _cancellation_text(booking))
+        notifications.queue_booking_sms(booking, "booking_cancelled")
     return booking
 
 
@@ -613,7 +577,8 @@ def move_booking(
         _event(booking, actor, EventAction.MOVED, before=before, after=_snapshot(booking))
         if price != old_price:
             _event(booking, actor, EventAction.PRICE_CHANGED, before=old_price, after=price)
-        _notify(booking, "booking_changed", _changed_text(booking))
+        notifications.queue_booking_sms(booking, "booking_changed")
+        notifications.reschedule_reminder(booking, now=now)
     return booking
 
 
@@ -641,6 +606,7 @@ def mark_no_show(*, venue, actor, booking_id, now: datetime | None = None) -> Bo
         booking.no_show_marked_by = actor
         booking.save()
         _event(booking, actor, EventAction.NO_SHOW)
+        notifications.cancel_reminder(booking)
     return booking
 
 

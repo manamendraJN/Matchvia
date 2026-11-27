@@ -54,6 +54,17 @@ class SmsMessage(models.Model):
     sent_at = models.DateTimeField(null=True, blank=True)
     provider_message_id = models.CharField(max_length=100, blank=True, default="")
     last_error = models.CharField(max_length=255, blank=True, default="")
+    # Which venue and booking a message is about (cleared, never cascaded, if those go away).
+    venue = models.ForeignKey(
+        "venues.Venue", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    booking = models.ForeignKey(
+        "bookings.Booking",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sms_messages",
+    )
     created_at = models.DateTimeField(default=timezone.now, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -70,6 +81,12 @@ class SmsMessage(models.Model):
             models.Index(fields=["to_phone"], name="sms_to_phone_idx"),
         ]
         constraints = [
+            # One live reminder per booking (US-P07, data-model 3.6).
+            models.UniqueConstraint(
+                fields=["booking", "purpose"],
+                condition=Q(purpose="reminder") & ~Q(status="cancelled"),
+                name="sms_one_reminder_per_booking",
+            ),
             models.CheckConstraint(
                 condition=Q(purpose__in=SmsPurpose.values),
                 name="sms_purpose_valid",

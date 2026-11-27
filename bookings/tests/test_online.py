@@ -56,7 +56,7 @@ def test_confirmation_sms_and_audit_event(player, court, clock):
     sms = SmsMessage.objects.get(purpose="booking_confirmation")
     assert sms.to_phone == player.phone
     assert booking.display_reference in sms.body
-    assert "Tue 8 Dec, 6:00 pm–7:00 pm" in sms.body
+    assert "Tue 8 Dec, 6:00 pm-7:00 pm" in sms.body  # plain hyphen: GSM-7, 160 chars/SMS
     assert "Rs. 4,000" in sms.body
     event = BookingEvent.objects.get(booking=booking)
     assert event.action == "created"

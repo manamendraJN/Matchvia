@@ -322,11 +322,7 @@ def add_member(venue: Venue, actor, *, name: str, phone: str, role: str) -> Venu
         notifications.queue_sms(
             to_phone=phone,
             purpose="staff_added",
-            body=_(
-                "Matchvia: You can now manage bookings at %(venue)s. Sign in on Matchvia with "
-                "this number."
-            )
-            % {"venue": venue.name},
+            body=notifications.render_sms("staff_added", venue=venue.name),
         )
     logger.info("venue.member_added venue_id=%s user_id=%s role=%s", venue.pk, user.pk, role)
     return membership
@@ -404,9 +400,7 @@ def _notify_owners(venue: Venue, text: str) -> None:
     )
     for membership in owners.select_related("user"):
         notifications.queue_sms(
-            to_phone=membership.user.phone,
-            purpose="venue_status",
-            body=text,
+            to_phone=membership.user.phone, purpose="venue_status", body=text, venue=venue
         )
 
 
@@ -425,11 +419,7 @@ def approve_venue(venue: Venue, admin) -> Venue:
         raise RuleViolation(_("Only venues waiting for approval can be approved."))
     with transaction.atomic():
         _set_status(venue, VenueStatus.APPROVED, by=admin)
-        _notify_owners(
-            venue,
-            _("Matchvia: %(venue)s is approved and live. Players can now book online.")
-            % {"venue": venue.name},
-        )
+        _notify_owners(venue, notifications.render_sms("venue_approved", venue=venue.name))
     return venue
 
 
@@ -441,12 +431,7 @@ def reject_venue(venue: Venue, admin, reason: str) -> Venue:
     with transaction.atomic():
         _set_status(venue, VenueStatus.REJECTED, by=admin, reason=reason)
         _notify_owners(
-            venue,
-            _(
-                "Matchvia: %(venue)s was not approved: %(reason)s Fix it in your dashboard and "
-                "submit again."
-            )
-            % {"venue": venue.name, "reason": reason},
+            venue, notifications.render_sms("venue_rejected", venue=venue.name, reason=reason)
         )
     return venue
 
@@ -460,9 +445,7 @@ def suspend_venue(venue: Venue, admin, reason: str) -> Venue:
     with transaction.atomic():
         _set_status(venue, VenueStatus.SUSPENDED, by=admin, reason=reason)
         _notify_owners(
-            venue,
-            _("Matchvia: %(venue)s is suspended: %(reason)s Contact Matchvia support.")
-            % {"venue": venue.name, "reason": reason},
+            venue, notifications.render_sms("venue_suspended", venue=venue.name, reason=reason)
         )
     return venue
 
@@ -473,5 +456,5 @@ def unsuspend_venue(venue: Venue, admin) -> Venue:
         raise RuleViolation(_("Only suspended venues can be unsuspended."))
     with transaction.atomic():
         _set_status(venue, VenueStatus.APPROVED, by=admin)
-        _notify_owners(venue, _("Matchvia: %(venue)s is live again.") % {"venue": venue.name})
+        _notify_owners(venue, notifications.render_sms("venue_unsuspended", venue=venue.name))
     return venue

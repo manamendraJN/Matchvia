@@ -239,7 +239,7 @@ def test_phone_booking_needs_a_number_and_sends_sms(staff_client, venue, court, 
         follow=True,
     )
     assert "SMS sent to the customer" in response.content.decode()
-    assert SmsMessage.objects.get().to_phone == "+94715551234"
+    assert SmsMessage.objects.get(purpose="booking_confirmation").to_phone == "+94715551234"
 
 
 def test_two_hours(staff_client, venue, court, clock):

@@ -50,7 +50,7 @@ def test_phone_booking_needs_a_number_and_sends_sms(venue, court, clock):
         staff_book(venue, court, source=Source.PHONE)
     booking = staff_book(venue, court, source=Source.PHONE, customer_phone="071 555 1234")
     assert booking.venue_customer.phone == "+94715551234"
-    assert SmsMessage.objects.get().to_phone == "+94715551234"
+    assert SmsMessage.objects.get(purpose="booking_confirmation").to_phone == "+94715551234"
 
 
 def test_invalid_customer_phone_refused(venue, court, clock):
@@ -62,9 +62,10 @@ def test_sms_follows_venue_settings(venue, court, court2, clock):
     VenueSettings.objects.for_venue(venue).update(sms_on_phone_bookings=False, sms_on_walk_ins=True)
     venue.settings.refresh_from_db()
     staff_book(venue, court, source=Source.PHONE, customer_phone="0715551234")
-    assert not SmsMessage.objects.exists()
-    staff_book(venue, court2, customer_phone="0715551234")
-    assert SmsMessage.objects.count() == 1
+    confirmations = SmsMessage.objects.filter(purpose="booking_confirmation")
+    assert not confirmations.exists()  # BR-21 setting covers the confirmation SMS
+    staff_book(venue, court2, customer_phone="0715551234")  # a walk-in with a phone
+    assert confirmations.count() == 1
 
 
 def test_staff_skip_notice_and_horizon(venue, court, clock):

@@ -1,0 +1,1 @@
+{% load i18n %}{% autoescape off %}{# SMS text: plain characters only, aim for one 160-character SMS. #}{% blocktranslate trimmed %}Matchvia: You can now manage bookings at {{ venue }}. Sign in on Matchvia with this number.{% endblocktranslate %}{% endautoescape %}

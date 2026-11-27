@@ -1,0 +1,1 @@
+{% load i18n %}{% autoescape off %}{# SMS text: plain characters only, aim for one 160-character SMS. #}{% blocktranslate trimmed %}Matchvia: {{ venue }} was not approved: {{ reason }} Fix it in your dashboard and submit again.{% endblocktranslate %}{% endautoescape %}

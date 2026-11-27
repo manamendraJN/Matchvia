@@ -27,9 +27,9 @@ def format_date(day: date) -> str:
     return dateformat.format(day, "D j M")
 
 
-def format_range(start: datetime, end: datetime) -> str:
-    """'Sat 5 Dec, 7:00 pm–8:00 pm'."""
-    return f"{format_day(start)}, {format_time(start)}–{format_time(end)}"
+def format_range(start: datetime, end: datetime, *, dash: str = "–") -> str:
+    """'Sat 5 Dec, 7:00 pm–8:00 pm'. SMS pass dash="-": the en dash isn't a GSM-7 character."""
+    return f"{format_day(start)}, {format_time(start)}{dash}{format_time(end)}"
 
 
 def format_lkr(amount: int) -> str:
