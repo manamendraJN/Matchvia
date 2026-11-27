@@ -17,6 +17,10 @@ document.addEventListener("DOMContentLoaded", () => {
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: "&copy; OpenStreetMap contributors",
+    // The OSM tile policy refuses requests without a Referer, and the site's policy is
+    // "same-origin" (none sent to other sites). For tiles only, send just our origin, never the
+    // page path (it holds venue ids).
+    referrerPolicy: "strict-origin-when-cross-origin",
   }).addTo(map);
 
   const current = () => {

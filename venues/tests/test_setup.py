@@ -1,5 +1,7 @@
 """Setup wizard for a draft venue: V1-V6, "Step N of 6", continues where the owner stopped."""
 
+from pathlib import Path
+
 import pytest
 from django.urls import reverse
 
@@ -222,3 +224,11 @@ def test_hours_and_prices_steps_show_errors(owner_client, venue):
 def test_venue_tab_has_the_map_too(owner_client, venue):
     page = owner_client.get(url("profile", venue)).content.decode()
     assert "data-venue-map" in page
+
+
+def test_map_tiles_send_only_our_origin():
+    """OpenStreetMap blocks tiles without a Referer; send the origin only, never the path."""
+    from django.contrib.staticfiles import finders
+
+    script = Path(finders.find("js/venue_map.js")).read_text(encoding="utf-8")
+    assert 'referrerPolicy: "strict-origin-when-cross-origin"' in script
