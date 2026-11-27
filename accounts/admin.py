@@ -120,6 +120,8 @@ class UserAdmin(AccessLoggedMixin, DjangoUserAdmin):
 
     def delete_account_view(self, request, user_id):
         """Carry out a deletion request that came by phone or email (US-P08, BR-25)."""
+        if not self.has_change_permission(request):
+            return redirect("admin:index")
         user = get_object_or_404(User, pk=user_id, deleted_at__isnull=True)
         change_url = reverse("admin:accounts_user_change", args=[user.pk])
         form = AccountDeletionForm(request.POST or None)

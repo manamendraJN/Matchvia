@@ -177,9 +177,18 @@ def test_admin_cannot_delete_their_own_account_here(root_client):
     assert not root.is_deleted
 
 
-def test_only_superusers_can_delete_on_request(player):
+def test_only_platform_admins_can_delete_on_request(player):
     with pytest.raises(NotAllowed):
-        accounts.delete_account_on_request(player, admin=UserFactory(is_staff=True))
+        accounts.delete_account_on_request(player, admin=UserFactory())
     root = UserFactory(is_superuser=True)
     with pytest.raises(RuleViolation, match="how the request came in"):
         admin_services.delete_account_on_request(admin=root, user=player, reason="  ")
+
+
+def test_admin_without_user_permissions_cannot_delete(client, player, clock):
+    limited = UserFactory(is_staff=True)  # platform admin with no permissions on users
+    sign_in_admin(client, limited)
+    url = reverse("admin:accounts_user_delete_account", args=[player.pk])
+    assert client.post(url, {"reason": "Email", "confirm": "on"}).status_code == 302
+    player.refresh_from_db()
+    assert not player.is_deleted

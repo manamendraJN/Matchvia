@@ -1,12 +1,11 @@
-"""Platform admin logic: two-step admin sign-in, access log, admin home, PDPA deletion (C9).
+"""Platform admin logic: admin sign-in, access log, admin home, PDPA deletion (C9).
 
-Admin sign-in (architecture 5, D9):
-- Only active superusers may use the admin site.
-- Step 1: mobile number + password. Step 2: a 6-digit code sent by SMS to the admin's own number
-  (the normal OTP system, purpose ``admin_login``).
-- At most 20 password attempts per IP per hour. 5 wrong passwords for one number lock that
-  number's admin sign-in for 15 minutes. Failures are logged with the number masked.
-- A verified admin session lasts 8 hours.
+Admin sign-in (architecture 5, D9, D16): the Django admin with mobile number + password, for
+active platform admins (``is_staff``). Django does not throttle logins, so (CLAUDE.md rule 4):
+- at most 20 password attempts per IP per hour;
+- 5 wrong passwords for one number lock that number's admin sign-in for 15 minutes;
+- failures are logged with the number masked.
+Admin access lasts 8 hours after signing in.
 
 Services own the transaction; cross-app calls go through the other app's services.py.
 """
@@ -15,14 +14,13 @@ import hashlib
 import logging
 from datetime import timedelta
 
-from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth import authenticate
 from django.core.cache import cache
 from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from accounts import services as accounts
-from accounts.models import OTPChallenge
 from bookings import selectors as booking_selectors
 from core import ratelimit
 from core.exceptions import DomainError, RateLimited, RuleViolation
@@ -38,7 +36,6 @@ ATTEMPTS_PER_IP_PER_HOUR = 20
 WRONG_PASSWORDS_BEFORE_LOCK = 5
 LOCK_SECONDS = 15 * 60
 ADMIN_SESSION = timedelta(hours=8)
-PENDING_STEP = timedelta(minutes=10)  # time allowed between the password and the code
 
 
 class BadCredentials(DomainError):
@@ -74,7 +71,7 @@ def _record_failure(phone: str) -> None:
 
 
 def check_password(*, phone: str, password: str, ip: str | None):
-    """Step 1. Returns the admin user and sends them a code by SMS.
+    """Return the admin user for a correct number + password; the view then calls login().
 
     ``phone`` must be normalised. Wrong number, wrong password, a non-admin account or a
     disabled account all give the same BadCredentials error. Raises AdminLocked or
@@ -84,35 +81,12 @@ def check_password(*, phone: str, password: str, ip: str | None):
     if (cache.get(_failure_key(phone)) or 0) >= WRONG_PASSWORDS_BEFORE_LOCK:
         raise AdminLocked(retry_after=LOCK_SECONDS)
     user = authenticate(None, phone=phone, password=password)
-    if user is None or not (user.is_active and user.is_superuser):
+    if user is None or not (user.is_active and user.is_staff):
         _record_failure(phone)
         raise BadCredentials()
     cache.delete(_failure_key(phone))
-    accounts.request_code(phone=user.phone, purpose=OTPChallenge.Purpose.ADMIN_LOGIN, ip=ip)
-    logger.info("admin_login.password_ok user_id=%s", user.pk)
-    return user
-
-
-def pending_admin(user_id, started_at: float | None, *, now=None):
-    """The admin between step 1 and step 2, or None if that has expired or no longer applies."""
-    now = now or timezone.now()
-    if not user_id or not started_at:
-        return None
-    if now.timestamp() - started_at > PENDING_STEP.total_seconds():
-        return None
-    return (
-        get_user_model()
-        .objects.filter(pk=user_id, is_active=True, is_superuser=True, phone__isnull=False)
-        .first()
-    )
-
-
-def check_code(user, *, code: str, ip: str | None) -> None:
-    """Step 2. Raises the accounts OTP errors (wrong, expired, locked, rate limited)."""
-    accounts.verify_code(
-        phone=user.phone, code=code, purpose=OTPChallenge.Purpose.ADMIN_LOGIN, ip=ip
-    )
     logger.info("admin_login.success user_id=%s", user.pk)
+    return user
 
 
 # ---------------------------------------------------------------- access log (A5)

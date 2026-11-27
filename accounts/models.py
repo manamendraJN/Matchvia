@@ -128,7 +128,6 @@ class OTPChallenge(models.Model):
     class Purpose(models.TextChoices):
         LOGIN = "login", _("Sign in")
         DELETE_ACCOUNT = "delete_account", _("Delete account")
-        ADMIN_LOGIN = "admin_login", _("Admin sign-in")  # second step for the admin site (C9)
 
     # Not a foreign key: a code can be requested before the account exists.
     phone = models.CharField(max_length=16, validators=[validate_phone])
@@ -151,7 +150,7 @@ class OTPChallenge(models.Model):
         ]
         constraints = [
             models.CheckConstraint(
-                condition=Q(purpose__in=["login", "delete_account", "admin_login"]),
+                condition=Q(purpose__in=["login", "delete_account"]),
                 name="otp_purpose_valid",
             ),
             models.CheckConstraint(condition=Q(attempts__lte=5), name="otp_attempts_max_5"),

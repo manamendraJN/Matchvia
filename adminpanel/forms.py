@@ -58,21 +58,6 @@ class AdminLoginForm(forms.Form):
             raise forms.ValidationError(INVALID_PHONE_MESSAGE) from None
 
 
-class AdminCodeForm(forms.Form):
-    """Admin sign-in step 2: the code sent by SMS."""
-
-    code = forms.CharField(
-        label=_("6-digit code"),
-        max_length=12,
-        widget=forms.TextInput(
-            attrs={"autocomplete": "one-time-code", "inputmode": "numeric", "autofocus": True}
-        ),
-    )
-
-    def clean_code(self):
-        return "".join(self.cleaned_data["code"].split())
-
-
 class AccountDeletionForm(forms.Form):
     """Carry out a PDPA deletion request for someone (admin)."""
 

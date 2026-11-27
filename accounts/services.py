@@ -408,7 +408,7 @@ def delete_account_on_request(user: User, *, admin: User) -> int:
     Same steps as self-service deletion, without the code. The admin site records who did it
     in the access log (adminpanel.services). Admins delete their own account themselves.
     """
-    if not (admin.is_active and admin.is_superuser):
+    if not (admin.is_active and admin.is_staff):
         raise NotAllowed(_("Only a platform admin can do this."))
     if admin.pk == user.pk:
         raise RuleViolation(_("Delete your own account from your account page."))
