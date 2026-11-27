@@ -85,3 +85,9 @@ def test_player_bottom_bar_has_icons_and_marks_the_current_page(client):
 def test_signed_out_header_offers_sign_in(client):
     html = client.get(reverse("home")).content.decode()
     assert reverse("accounts:phone") in html
+
+
+def test_fieldsets_can_shrink_so_scrolling_rows_stay_inside():
+    """Regression: the day pills in a fieldset made the whole home page scroll sideways."""
+    source = (Path(settings.BASE_DIR) / "assets" / "tailwind.css").read_text(encoding="utf-8")
+    assert re.search(r"fieldset \{\s*min-width: 0;\s*\}", source)
