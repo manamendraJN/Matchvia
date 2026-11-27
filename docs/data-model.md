@@ -109,7 +109,7 @@ constraint, `null` = nullable. Fields are not nullable unless marked.
 |---|---|---|
 | id | BigAutoField PK | |
 | phone | CharField(16) | Not an FK: a code can be requested before the account exists |
-| purpose | CharField: `login`, `delete_account` | **CK** |
+| purpose | CharField: `login`, `delete_account`, `admin_login` (second step of the admin sign-in) | **CK** |
 | code_hash | CharField(128) | Hash of the 6-digit code (never stored in clear) |
 | expires_at | DateTimeField | `created_at + 5 min` (BR-27) |
 | attempts | PositiveSmallInteger, default 0 | Wrong guesses on this challenge |
@@ -566,13 +566,16 @@ states valid):
 |---|---|---|
 | id | BigAutoField PK | |
 | admin | FK User, PROTECT | |
-| action | CharField: `view`, `search`, `change` | **CK** |
-| object_type | CharField(50) | For example `booking`, `venue_customer` |
-| object_id | BigInteger, null | |
-| query | CharField(100), blank | Search term (phone number masked) |
+| action | CharField: `view`, `search`, `change`, `delete_account` | **CK** |
+| object_type | CharField(50) | `booking`, `venue_customer`, `user`, `sms`, `venue` |
+| object_id | BigInteger, null | Null for searches and list views |
+| detail | CharField(255), blank | Search term (phone numbers masked), `list`, or how a deletion request came in |
 | created_at | DateTimeField | |
 
 - **IX** `(admin, created_at)`, `(object_type, object_id)`.
+- Written by the admin site when an admin opens a booking, venue customer, user, SMS or venue
+  review page, saves a change, searches those lists, opens the user/customer/SMS lists, or deletes
+  an account on request. Read-only in the admin: nobody can add, edit or delete a row (A5).
 
 ### 3.8 payments (Phase 2 sketch, not built in MVP)
 
@@ -841,13 +844,19 @@ rupees. If cents are ever needed, the `_lkr` columns are converted in one migrat
 | Data | Where | On account deletion |
 |---|---|---|
 | Phone, name | `User` | `phone = NULL`, `name = 'Deleted user'`, `is_active = False`, `deleted_at = now()` |
-| Phone, name at venues | `VenueCustomer` rows where `user` = them | `phone = NULL`, `name = 'Deleted user'`, `user = NULL` |
-| Name on bookings | `Booking.customer_name` for those customers | `'Deleted user'`. Future bookings cancelled first, venues notified |
+| Phone, name at venues | `VenueCustomer` rows where `user` = them or `phone` = their number | `phone = NULL`, `name = 'Deleted user'`, `user = NULL`; staff `notes` and `block_reason` cleared |
+| Name on bookings | `Booking.customer_name` for those customers | `'Deleted user'`. Future bookings cancelled first (reason `customer_request`); each venue's owners get one SMS with the count (`account_deleted_venue`, no name or number) |
+| Weekly bookings | `RecurringSeries` for those customers, `pending` or `approved` | `cancelled` (future weeks are cancelled with the bookings above) |
 | OTP rows | `OTPChallenge` for their phone | Deleted |
-| SMS log | `SmsMessage.to_phone` for their phone | Set to NULL (bodies of booking SMS contain no phone numbers) |
-| Teams | `TeamMembership` | Deleted. A captain must transfer or close teams first (US-P08) |
+| SMS log | `SmsMessage.to_phone` for their phone | Set to NULL; queued messages to it cancelled (bodies of booking SMS contain no phone numbers) |
+| Teams | `TeamMembership`; `TeamInvite` to their number | Deleted. A captain must hand over (Make captain) or close the team first (US-P08) |
+| Venue roles | `VenueMembership` | Deleted. The only owner of a `pending`, `approved` or `suspended` venue must add another owner first; drafts and rejected venues don't block |
 | Consent | `ConsentRecord` | Kept (proof of consent), linked to the anonymised user |
 | Audit log | `BookingEvent` | Untouched: it never stores names or phones |
+
+The same steps run when a platform admin carries out a deletion request received by phone or
+email (user page in the admin, "Delete account (PDPA request)"); that also writes an
+`AdminAccessLog` row with action `delete_account`.
 
 Walk-in customers' data (staff-entered `VenueCustomer` rows without an account) follows BR-28, which
 is still open: a retention rule is decided before public launch.

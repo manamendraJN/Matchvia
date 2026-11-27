@@ -335,8 +335,10 @@ in. Signing in is asked for only when it's needed (booking, teams, account).
 - **Purpose:** members, invites and team bookings.
 - **Main elements:** name, sport; member list (name, "Captain" chip); pending invites (phone, "Sent 2
   days ago", Resend / Remove); **Invite a player** (phone field + Send invite); upcoming team
-  bookings; captain-only: Remove member, Edit name.
-- **Actions:** invite, resend, remove member, open a booking (P10).
+  bookings; captain-only: Make captain, Remove member, Edit name, **Close team** (confirmation page:
+  the team disappears for every player, open invites stop, booked games stay).
+- **Actions:** invite, resend, make another member captain, remove member, close team, open a
+  booking (P10).
 - **Empty / error:** team full → "Teams can have up to 15 players"; invalid phone → same message as
   P4; invite rate limit → "You've sent a lot of invites today. Try again tomorrow."
 
@@ -729,6 +731,13 @@ summary (bookings, expected rupees, free peak slots).*
 Admin uses the Django admin (architecture D16), at a private path behind Cloudflare Access.
 Customisations below make the key tasks one-screen jobs and keep them usable on a phone.
 
+#### A0 Admin sign-in
+
+- **Purpose:** keep the admin site for platform admins only.
+- **Main elements:** step 1 mobile number + password; step 2 the 6-digit code sent by SMS.
+- **Empty / error:** "Wrong mobile number or password." for any wrong pair or a non-admin account;
+  "Too many attempts. Try again in 15 minutes." after 5 wrong passwords; wrong code → attempts left.
+
 #### A1 Admin home: pending venues · US-A01
 
 - **Purpose:** see what needs action.
@@ -757,7 +766,9 @@ Customisations below make the key tasks one-screen jobs and keep them usable on 
 - **Purpose:** resolve disputes.
 - **Main elements:** one search box (reference `MV-…` or phone number); results with venue, court,
   time, status; detail with full change history (read-only).
-- **Actions:** open venue (A2); view customer record (logged).
+- **Actions:** open venue (A2); view customer record (logged). The user page has
+  **Delete account (PDPA request)** for requests received by phone or email: shows what will happen
+  and any hand-over blockers, asks how the request came in, then runs the P19 steps (logged).
 - **Empty / error:** "No booking found for MV-7K3P9Q."
 
 #### A5 Access log · US-A04

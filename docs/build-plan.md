@@ -101,8 +101,8 @@ changed) before the step that needs it.
 - [ ] **S22** Blocks and closed days (V14, V15) · 2.5 d
 - [ ] **S23** Customer book and online blocking (V18, V19) · 1.5 d
 - [ ] **S24** Venue settings, courts, hours, prices, staff, profile (V20–V25) · 3 d
-- [ ] **S25** Platform admin (A1–A5) · 2 d
-- [ ] **S26** Account, deletion and privacy pages (P18–P20) · 2 d
+- [x] **S25** Platform admin (A1–A5) · 2 d
+- [x] **S26** Account, deletion and privacy pages (P18–P20) · 2 d
 
 ### Milestone 4: Recommended for the pilot (Should) (about 3 days)
 
@@ -648,4 +648,5 @@ security.
 | S27 | 27 Nov 2026 | 27 Nov 2026 | | Prompt C8 part A: RecurringSeries with composite keys, week preview, expansion with a savepoint per week, staff weekly bookings (V16), cancel one week or the rest (captain keeps weeks inside the window), series excluded from BR-12, 🔁 on calendar |
 | S32 | 27 Nov 2026 | 27 Nov 2026 | | Prompt C8 part B: teams, invites with hashed tokens (7-day expiry, re-send, 20/day, 15-player limit under concurrent accepts, wrong-number message), team tag on bookings, team bookings in My bookings, P14-P17, Teams in the bottom bar |
 | S33 | 27 Nov 2026 | 27 Nov 2026 | | Prompt C8 part B: captain requests (P12) that reserve nothing, venue notified, approve/reject with preview (V17) under the BR-13 approver setting, 48-hour expiry job, P13 |
-| S25 (part) | 26 Nov 2026 | | | Prompt C3: area admin, venue review page with approve/reject/suspend/unsuspend and owner SMS. Booking lookup and access log still to do (C9) |
+| S25 | 26 Nov 2026 | 27 Nov 2026 | | Prompts C3 and C9: area admin, venue review with owner SMS; superuser-only admin site with password + SMS code sign-in, IP and per-number limits, 8-hour sessions; admin home counts and waiting venues; booking lookup by reference or phone; read-only access log written on every view/search of personal data. Cloudflare Access in front of the admin comes with deployment (C10) |
+| S26 | 26 Nov 2026 | 27 Nov 2026 | | Prompts C2 and C9: deletion now cancels future bookings and weekly bookings with one SMS per venue, anonymises venue customer rows and booking names (numbers matched too), ends team and staff roles, drops invites; owner/captain hand-over rule with Make captain and Close team; admin "Delete account (PDPA request)" action |
