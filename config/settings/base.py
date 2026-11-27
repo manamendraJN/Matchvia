@@ -162,6 +162,9 @@ SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = "Lax"
 
+# Public address used in SMS links (team invites). No trailing slash.
+SITE_URL = "http://localhost:8000"
+
 # ---------------------------------------------------------------- SMS and worker
 # Text.lk (D4). Key and sender ID come from the environment only (CLAUDE.md rule 5).
 SMS_API_URL = "https://app.text.lk/api/v3/sms/send"

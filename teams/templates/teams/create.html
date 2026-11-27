@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "Create team" %} · Matchvia{% endblock %}
+
+{% block content %}
+  <form method="post" action="{% url 'team_create' %}" class="space-y-5" novalidate>
+    {% csrf_token %}
+    <h1 class="text-2xl font-bold tracking-tight">{% translate "Create team" %}</h1>
+    {% include "components/form_errors.html" %}
+    {% include "components/field.html" with field=form.name %}
+    <fieldset class="space-y-2">
+      <legend class="text-sm font-medium text-slate-700">{% translate "Sport" %}</legend>
+      <div class="grid grid-cols-2 gap-2">
+        {% for radio in form.sport %}
+          <label class="flex min-h-12 cursor-pointer items-center justify-center rounded-lg border border-slate-300 bg-white px-3 font-semibold has-checked:border-green-700 has-checked:bg-green-700 has-checked:text-white">{{ radio.tag }}{{ radio.choice_label }}</label>
+        {% endfor %}
+      </div>
+    </fieldset>
+    <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white">{% translate "Create team" %}</button>
+  </form>
+{% endblock %}

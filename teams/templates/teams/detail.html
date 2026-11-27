@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load i18n matchvia %}
+
+{% block title %}{{ team.name }} · Matchvia{% endblock %}
+
+{% block content %}
+  <section class="space-y-5">
+    <a href="{% url 'my_teams' %}" class="text-sm text-slate-600 hover:underline">← {% translate "My teams" %}</a>
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">{{ team.name }}</h1>
+      <p class="text-slate-600">{{ team.get_sport_display }} · {% blocktranslate count n=members|length %}{{ n }} player{% plural %}{{ n }} players{% endblocktranslate %}</p>
+    </div>
+
+    <ul class="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white px-4">
+      {% for m in members %}
+        <li class="flex items-center justify-between py-3">
+          <span>{{ m.user.name }}{% if m.user_id == team.captain_id %} <span class="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">{% translate "Captain" %}</span>{% endif %}</span>
+          {% if is_captain and m.user_id != team.captain_id %}
+            <form method="post" action="{% url 'team_remove_member' team.pk m.user_id %}">
+              {% csrf_token %}
+              <button type="submit" class="text-sm font-medium text-red-700 hover:underline">{% translate "Remove" %}</button>
+            </form>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+
+    {% if is_captain %}
+      {% if invites %}
+        <div class="space-y-2">
+          <h2 class="font-semibold">{% translate "Invites sent" %}</h2>
+          <ul class="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white px-4 text-sm">
+            {% for inv in invites %}
+              <li class="flex items-center justify-between py-3">
+                <span>{{ inv.phone|local_phone }} · {% blocktranslate with ago=inv.created_at|timesince %}sent {{ ago }} ago{% endblocktranslate %}</span>
+                <form method="post" action="{% url 'team_revoke_invite' team.pk inv.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="font-medium text-red-700 hover:underline">{% translate "Remove" %}</button>
+                </form>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+      <form method="post" action="{% url 'team_detail' team.pk %}" class="space-y-3 rounded-xl border border-slate-200 bg-white p-4" novalidate>
+        {% csrf_token %}
+        <h2 class="font-semibold">{% translate "Invite a player" %}</h2>
+        {% include "components/form_errors.html" %}
+        {% include "components/field.html" with field=form.phone %}
+        <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 font-semibold text-white">{% translate "Send invite" %}</button>
+        <p class="text-sm text-slate-500">{% translate "Sending again to the same number re-sends the invite. Teams can have up to 15 players." %}</p>
+      </form>
+    {% endif %}
+
+    <div class="space-y-2">
+      <h2 class="font-semibold">{% translate "Upcoming team games" %}</h2>
+      {% for b in bookings %}
+        <p class="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm">{{ b.start_at|day }}, {{ b.start_at|time12 }} · {{ b.venue.name }} · {{ b.court.name }}</p>
+      {% empty %}
+        <p class="text-sm text-slate-600">{% translate "No upcoming team games." %}</p>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}

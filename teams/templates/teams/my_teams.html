@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "My teams" %} · Matchvia{% endblock %}
+
+{% block content %}
+  <section class="space-y-5">
+    <h1 class="text-2xl font-bold tracking-tight">{% translate "My teams" %}</h1>
+
+    {% if invites %}
+      <div class="space-y-2">
+        <h2 class="font-semibold">{% translate "Invites" %}</h2>
+        {% for invite in invites %}
+          <div class="rounded-xl border border-green-200 bg-green-50 p-4">
+            <p>{% blocktranslate with captain=invite.invited_by.name team=invite.team.name %}{{ captain }} invited you to join <strong>{{ team }}</strong>.{% endblocktranslate %}</p>
+            <p class="mt-2 text-sm text-slate-600">{% translate "Open the link in your SMS to join." %}</p>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if teams %}
+      <ul class="space-y-3">
+        {% for team in teams %}
+          <li>
+            <a href="{% url 'team_detail' team.pk %}" class="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 hover:bg-slate-50">
+              <span>
+                <span class="block font-semibold">{{ team.name }}</span>
+                <span class="block text-sm text-slate-600">{{ team.get_sport_display }}</span>
+              </span>
+              {% if team.captain_id == request.user.pk %}<span class="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">{% translate "Captain" %}</span>{% endif %}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-slate-600">{% translate "No teams yet. Create one to book weekly slots and share games with your team." %}</p>
+    {% endif %}
+
+    <a href="{% url 'team_create' %}" class="block w-full rounded-lg bg-green-700 px-4 py-3 text-center text-lg font-semibold text-white">{% translate "Create team" %}</a>
+  </section>
+{% endblock %}

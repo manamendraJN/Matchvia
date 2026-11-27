@@ -198,7 +198,9 @@ def test_prod_passes_deploy_checks():
 
 
 def test_sms_allowlist_is_normalised(monkeypatch):
-    staging = load_settings("staging", monkeypatch, SMS_ALLOWED_NUMBERS="077 123 4567, +94711111111")
+    staging = load_settings(
+        "staging", monkeypatch, SMS_ALLOWED_NUMBERS="077 123 4567, +94711111111"
+    )
     assert staging.SMS_ALLOWED_NUMBERS == ["+94771234567", "+94711111111"]
     assert staging.HEALTHZ_CHECK_WORKER is True
 

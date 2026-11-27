@@ -23,6 +23,8 @@ SMS_API_KEY = optional("SMS_API_KEY")
 SMS_SENDER_ID = optional("SMS_SENDER_ID")
 SMS_ALLOWED_NUMBERS = phone_list("SMS_ALLOWED_NUMBERS")  # set on staging only
 HEALTHZ_CHECK_WORKER = True
+# Public address for links in SMS; staging sets its own (architecture 6.4).
+SITE_URL = optional("SITE_URL", "https://matchvia.lk").rstrip("/")
 
 # The origin firewall accepts traffic from Cloudflare only (architecture 5.1).
 TRUST_CF_CONNECTING_IP = True

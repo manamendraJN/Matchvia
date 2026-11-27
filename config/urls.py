@@ -11,6 +11,7 @@ from core.views import healthz
 urlpatterns = [
     path("", booking_views.home, name="home"),
     path("", include("bookings.urls")),
+    path("", include("teams.urls")),
     path("healthz", healthz, name="healthz"),
     path("auth/", include("accounts.urls")),
     path("me/", include("accounts.urls_me")),
