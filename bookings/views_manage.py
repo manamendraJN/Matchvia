@@ -14,6 +14,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from django.utils.translation import ngettext
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from core.exceptions import NotAllowed, RuleViolation, SlotTaken
@@ -21,14 +22,17 @@ from core.formatting import format_date, format_range, format_time
 from core.timeutils import at_operating_minute, operating_date, operating_minute
 from pricing import services as pricing
 from venues import services as venue_services
-from venues.decorators import members_only
+from venues.decorators import members_only, owner_only
 from venues.models import Court, MemberRole, VenueCustomer, VenueStatus
 
 from . import calendar as cal
-from . import services
+from . import selectors, services
 from .forms_manage import (
     MAX_STAFF_SLOTS,
     BlockForm,
+    CloseDayForm,
+    CustomerBlockForm,
+    CustomerForm,
     MoveForm,
     NewBookingForm,
     SeriesCancelForm,
@@ -85,9 +89,12 @@ def _court_param(venue, value):
 def calendar(request, venue):
     day = _day(request)
     show_cancelled = request.GET.get("cancelled") == "1"
+    closure = services.day_closure(venue, day)
     context = _context(
         venue,
         cal=cal.day_calendar(venue, day, show_cancelled=show_cancelled),
+        closure=closure,
+        closure_note=services.closure_note(closure),
         day=day,
         today=operating_date(timezone.now()),
         prev_day=day - timedelta(days=1),
@@ -445,9 +452,143 @@ def remove_block(request, venue, booking_id):
         services.cancel_block(venue=venue, actor=request.user, booking_id=block.pk)
     except Booking.DoesNotExist:
         messages.error(request, _("This block was already removed."))
+    except RuleViolation as exc:
+        messages.error(request, exc.message)
     else:
         messages.success(request, _("Block removed."))
     return redirect(_calendar_url(venue, block.operating_date))
+
+
+# ---------------------------------------------------------------- V18, V19 customer book
+
+
+@members_only
+@require_GET
+def customers(request, venue):
+    query = request.GET.get("q", "")
+    rows = list(selectors.customer_book(venue, query)[:200])
+    context = _context(venue, customers=rows, query=query)
+    return render(request, "bookings/manage/customers.html", context)
+
+
+def _customer_or_404(venue, customer_id) -> VenueCustomer:
+    return get_object_or_404(VenueCustomer.objects.for_venue(venue), pk=customer_id)
+
+
+@members_only
+@require_http_methods(["GET", "POST"])
+def customer_detail(request, venue, customer_id):
+    """V19. Owner and staff edit name and notes; blocking is on its own owner-only URLs."""
+    customer = _customer_or_404(venue, customer_id)
+    deleted = customer.phone is None
+    form = CustomerForm(
+        request.POST or None, initial={"name": customer.name, "notes": customer.notes}
+    )
+    if request.method == "POST" and form.is_valid():
+        try:
+            venue_services.update_customer(venue, request.user, customer.pk, **form.cleaned_data)
+        except RuleViolation as exc:
+            form.add_error(None, exc.message)
+        else:
+            messages.success(request, _("Saved."))
+            return redirect("manage:customer_detail", venue_id=venue.pk, customer_id=customer.pk)
+    context = _context(
+        venue,
+        customer=customer,
+        deleted=deleted,
+        form=form,
+        block_form=CustomerBlockForm(),
+        stats=cal.customer_stats(customer),
+        **selectors.customer_history(venue, customer),
+    )
+    return render(request, "bookings/manage/customer_detail.html", context)
+
+
+@owner_only
+@require_POST
+def customer_block(request, venue, customer_id):
+    customer = _customer_or_404(venue, customer_id)
+    form = CustomerBlockForm(request.POST)
+    reason = form.cleaned_data["reason"] if form.is_valid() else ""
+    try:
+        venue_services.block_customer_online(venue, request.user, customer.pk, reason=reason)
+    except RuleViolation as exc:
+        messages.error(request, exc.message)
+    else:
+        messages.success(
+            request, _("Blocked from online booking here. They can still book through you.")
+        )
+    return redirect("manage:customer_detail", venue_id=venue.pk, customer_id=customer.pk)
+
+
+@owner_only
+@require_POST
+def customer_unblock(request, venue, customer_id):
+    customer = _customer_or_404(venue, customer_id)
+    try:
+        venue_services.unblock_customer_online(venue, request.user, customer.pk)
+    except RuleViolation as exc:
+        messages.error(request, exc.message)
+    else:
+        messages.success(request, _("Unblocked. They can book online again."))
+    return redirect("manage:customer_detail", venue_id=venue.pk, customer_id=customer.pk)
+
+
+# ---------------------------------------------------------------- V15 close the venue for a day
+
+
+@members_only
+@require_http_methods(["GET", "POST"])
+def close_day(request, venue):
+    """Close a whole day. With bookings, show them and offer "Cancel all and send SMS" (BR-16)."""
+    form = CloseDayForm(request.POST or None, initial={"date": _day(request)})
+    in_the_way = []
+    if request.method == "POST" and form.is_valid():
+        day, note = form.cleaned_data["date"], form.cleaned_data["note"]
+        try:
+            cancelled = services.close_day(
+                venue=venue,
+                actor=request.user,
+                day=day,
+                note=note,
+                cancel_bookings=request.POST.get("cancel_all") == "1",
+            )
+        except services.DayHasBookings as exc:
+            in_the_way = exc.bookings
+        except RuleViolation as exc:
+            form.add_error(None, exc.message)
+        else:
+            if cancelled:
+                messages.success(
+                    request,
+                    ngettext(
+                        "Day closed. %(count)d booking was cancelled; the customer gets an SMS.",
+                        "Day closed. %(count)d bookings were cancelled; customers get an SMS.",
+                        cancelled,
+                    )
+                    % {"count": cancelled},
+                )
+            else:
+                messages.success(request, _("Day closed. Players see it as closed."))
+            return redirect(_calendar_url(venue, day))
+    context = _context(venue, form=form, in_the_way=in_the_way)
+    return render(request, "bookings/manage/close_day.html", context)
+
+
+@members_only
+@require_POST
+def reopen_day(request, venue):
+    form = CloseDayForm(request.POST)
+    if not form.is_valid():
+        return redirect("manage:dashboard", venue_id=venue.pk)
+    day = form.cleaned_data["date"]
+    try:
+        services.reopen_day(venue=venue, actor=request.user, day=day)
+    except RuleViolation as exc:
+        messages.error(request, exc.message)
+    else:
+        messages.success(request, _("The day is open again."))
+    return redirect(_calendar_url(venue, day))
 
 
 # ---------------------------------------------------------------- V16 weekly bookings (US-S08)

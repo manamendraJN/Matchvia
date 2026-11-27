@@ -35,6 +35,7 @@ from .forms import (
     VenueProfileForm,
 )
 from .models import Court, MemberRole, OpeningHours, VenueMembership, VenuePhoto
+from .rules import RULES, RULES_BY_FIELD
 
 # Setup steps (screens 3.1): number -> (URL name, title shown as "Step 2 of 6 · Location").
 STEPS = {
@@ -389,6 +390,29 @@ def prices(request, venue):
         _read_only(peak_formset, *(form for _court, form in court_forms))
     context = _context(venue, court_forms=court_forms, peak_formset=peak_formset)
     return render(request, "venues/prices.html", context)
+
+
+# ---------------------------------------------------------------- booking rules (V20)
+
+
+@owner_only
+@require_http_methods(["GET", "POST"])
+def rules(request, venue):
+    """Each rule as a plain question; Save per rule (US-O05)."""
+    if request.method == "POST":
+        field = request.POST.get("rule", "")
+        if field not in RULES_BY_FIELD:
+            return redirect("manage:rules", venue_id=venue.pk)
+        try:
+            services.update_rule(venue, request.user, field, request.POST.get("value", ""))
+        except RuleViolation as exc:
+            messages.error(request, exc.message)
+        else:
+            messages.success(request, _("Saved. Applies to new bookings."))
+        return redirect(f"{reverse('manage:rules', args=[venue.pk])}#rule-{field}")
+    current = venue.settings
+    items = [{"rule": rule, "current": str(getattr(current, rule.field))} for rule in RULES]
+    return render(request, "venues/rules.html", _context(venue, items=items))
 
 
 # ---------------------------------------------------------------- staff (V24)

@@ -1,0 +1,88 @@
+{% extends "venues/_layout.html" %}
+{% load i18n matchvia %}
+
+{% block staff_note %}{% endblock %}
+
+{% block venue_content %}
+  <div class="space-y-5">
+    <a href="{% url 'manage:customers' venue.pk %}" class="text-sm text-slate-600 hover:underline">← {% translate "Customers" %}</a>
+
+    <div class="space-y-2">
+      <h2 class="text-xl font-bold">{{ customer.name }}
+        {% if customer.is_blocked_online %}<span class="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">{% translate "Blocked online" %}</span>{% endif %}
+      </h2>
+      {% if not deleted %}
+        <p class="text-slate-700">{{ customer.phone|local_phone }}</p>
+        <div class="grid grid-cols-2 gap-2">
+          <a href="tel:{{ customer.phone }}" class="rounded-lg border border-green-700 px-4 py-3 text-center font-semibold text-green-800">{% translate "Call" %}</a>
+          <a href="https://wa.me/{{ customer.phone|slice:'1:' }}" rel="noopener noreferrer" class="rounded-lg border border-green-700 px-4 py-3 text-center font-semibold text-green-800">WhatsApp</a>
+        </div>
+      {% else %}
+        <p class="text-sm text-slate-500">{% translate "This customer deleted their account. Their past bookings stay, without a name or number." %}</p>
+      {% endif %}
+    </div>
+
+    <dl class="grid grid-cols-3 gap-2 text-center">
+      <div class="rounded-xl bg-white p-3 ring-1 ring-slate-200"><dt class="text-xs text-slate-500">{% translate "Bookings" %}</dt><dd class="text-xl font-bold">{{ stats.bookings }}</dd></div>
+      <div class="rounded-xl bg-white p-3 ring-1 ring-slate-200"><dt class="text-xs text-slate-500">{% translate "No-shows" %}</dt><dd class="text-xl font-bold {% if stats.no_shows %}text-red-700{% endif %}">{{ stats.no_shows }}</dd></div>
+      <div class="rounded-xl bg-white p-3 ring-1 ring-slate-200"><dt class="text-xs text-slate-500">{% translate "Late cancellations" %}</dt><dd class="text-xl font-bold">{{ stats.late_cancellations }}</dd></div>
+    </dl>
+
+    {% if not deleted %}
+      <form method="post" class="space-y-3 rounded-xl border border-slate-200 bg-white p-4" novalidate>
+        {% csrf_token %}
+        {% include "components/form_errors.html" %}
+        {% include "components/field.html" with field=form.name %}
+        {% include "components/field.html" with field=form.notes %}
+        <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 font-semibold text-white">{% translate "Save" %}</button>
+      </form>
+    {% endif %}
+
+    <section class="space-y-2">
+      <h3 class="font-semibold">{% translate "Upcoming" %}</h3>
+      {% for b in upcoming %}
+        <a href="{% url 'manage:booking_detail' venue.pk b.pk %}" class="block rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm">{{ b.start_at|day }}, {{ b.start_at|time12 }} · {{ b.court.name }}</a>
+      {% empty %}
+        <p class="text-sm text-slate-500">{% translate "No upcoming bookings." %}</p>
+      {% endfor %}
+    </section>
+
+    {% if series %}
+      <section class="space-y-2">
+        <h3 class="font-semibold">{% translate "Weekly slots" %}</h3>
+        {% for s in series %}
+          <a href="{% url 'manage:series_detail' venue.pk s.pk %}" class="block rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm">{{ s.court.name }} · {{ s.get_status_display }}</a>
+        {% endfor %}
+      </section>
+    {% endif %}
+
+    <section class="space-y-2">
+      <h3 class="font-semibold">{% translate "Past" %}</h3>
+      {% for b in past %}
+        <a href="{% url 'manage:booking_detail' venue.pk b.pk %}" class="block rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm">{{ b.start_at|day }}, {{ b.start_at|time12 }} · {{ b.court.name }} · {{ b.get_status_display }}{% if b.is_late_cancellation %} ({% translate "late" %}){% endif %}</a>
+      {% empty %}
+        <p class="text-sm text-slate-500">{% translate "No past bookings." %}</p>
+      {% endfor %}
+    </section>
+
+    {% if can_edit and not deleted %}
+      <section class="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+        {% if customer.is_blocked_online %}
+          <p class="text-sm text-slate-700">{% translate "Blocked from online booking at your venue." %}{% if customer.block_reason %} {{ customer.block_reason }}{% endif %}</p>
+          <form method="post" action="{% url 'manage:customer_unblock' venue.pk customer.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="w-full rounded-lg border border-slate-400 px-4 py-3 font-semibold">{% translate "Unblock" %}</button>
+          </form>
+        {% else %}
+          <form method="post" action="{% url 'manage:customer_block' venue.pk customer.pk %}" class="space-y-3">
+            {% csrf_token %}
+            <h3 class="font-semibold">{% translate "Block from online booking" %}</h3>
+            <p class="text-sm text-slate-600">{% translate "They can't book your venue online any more. They can still book through you, and other venues are not affected." %}</p>
+            {% include "components/field.html" with field=block_form.reason %}
+            <button type="submit" class="w-full rounded-lg bg-red-700 px-4 py-3 font-semibold text-white">{% translate "Block from online booking" %}</button>
+          </form>
+        {% endif %}
+      </section>
+    {% endif %}
+  </div>
+{% endblock %}

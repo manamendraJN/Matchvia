@@ -248,3 +248,43 @@ class SeriesCancelForm(forms.Form):
     reason = forms.ChoiceField(
         label=_("Why?"), choices=CancelReason.choices, widget=forms.RadioSelect(attrs=CHIP)
     )
+
+
+class CloseDayForm(forms.Form):
+    """V15: close the whole venue for one day. The note is for staff only."""
+
+    date = forms.DateField(
+        label=_("Date"),
+        widget=forms.DateInput(attrs={"type": "date", "class": INPUT_CLASS}),
+    )
+    note = forms.CharField(
+        label=_("Note for staff (optional)"),
+        required=False,
+        max_length=100,
+        help_text=_('For example: Poya day, repairs. Players only see "Closed".'),
+        widget=forms.TextInput(attrs={"class": INPUT_CLASS}),
+    )
+
+
+class CustomerForm(forms.Form):
+    """V19: the venue's own name and notes for a customer."""
+
+    name = forms.CharField(
+        label=_("Name"), max_length=80, widget=forms.TextInput(attrs={"class": INPUT_CLASS})
+    )
+    notes = forms.CharField(
+        label=_("Notes"),
+        required=False,
+        max_length=255,
+        help_text=_("For example: Regular Tuesday team. Only your venue sees this."),
+        widget=forms.TextInput(attrs={"class": INPUT_CLASS}),
+    )
+
+
+class CustomerBlockForm(forms.Form):
+    reason = forms.CharField(
+        label=_("Reason (optional, only your venue sees it)"),
+        required=False,
+        max_length=255,
+        widget=forms.TextInput(attrs={"class": INPUT_CLASS}),
+    )

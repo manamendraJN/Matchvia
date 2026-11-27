@@ -29,7 +29,24 @@
     <a href="?date={{ next_day.isoformat }}" class="rounded-lg border border-slate-300 bg-white px-4 py-3" aria-label="{% translate 'Next day' %}">▶</a>
   </div>
 
-  <div class="flex justify-end text-sm">
+  {% if closure %}
+    <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-300 bg-slate-100 p-4">
+      <div>
+        <p class="font-semibold">{% translate "Closed for the day" %}</p>
+        {% if closure_note %}<p class="text-sm text-slate-600">{{ closure_note }}</p>{% endif %}
+      </div>
+      <form method="post" action="{% url 'manage:reopen_day' venue.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="date" value="{{ day.isoformat }}">
+        <button type="submit" class="rounded-lg border border-slate-400 bg-white px-4 py-2 text-sm font-semibold">{% translate "Reopen this day" %}</button>
+      </form>
+    </div>
+  {% endif %}
+
+  <div class="flex justify-between text-sm">
+    {% if not closure and day >= today %}
+      <a href="{% url 'manage:close_day' venue.pk %}?date={{ day.isoformat }}" class="text-slate-600 underline">{% translate "Close this day" %}</a>
+    {% else %}<span></span>{% endif %}
     {% if show_cancelled %}
       <a href="?date={{ day.isoformat }}" class="text-slate-600 underline">{% translate "Hide cancelled" %}</a>
     {% else %}

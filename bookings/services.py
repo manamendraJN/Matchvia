@@ -18,11 +18,18 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.utils import dateformat, timezone
 from django.utils.translation import gettext as _
+from django.utils.translation import ngettext
 
+from core.db import advisory_xact_lock
 from core.exceptions import NotAllowed, RuleViolation, SlotTaken
 from core.formatting import format_date, format_time
 from core.phone import INVALID_PHONE_MESSAGE, InvalidPhone, format_local, normalise_phone
-from core.timeutils import at_operating_minute, operating_date, operating_minute
+from core.timeutils import (
+    DAY_START_MINUTE,
+    at_operating_minute,
+    operating_date,
+    operating_minute,
+)
 from notifications import services as notifications
 from pricing import services as pricing
 from teams import services as teams
@@ -57,6 +64,11 @@ NAME_MAX_LENGTH = 80
 
 class OutsideOpeningHours(RuleViolation):
     """Staff may still save after confirming (BR-23); the view offers 'Save anyway'."""
+
+
+# Notes of the blocks that close a whole day start with this, so a closure is told apart from a
+# staff block that happens to use the "Closed" reason.
+CLOSED_DAY_MARK = "[closed day]"
 
 
 class BlockConflict(RuleViolation):
@@ -527,12 +539,165 @@ def cancel_block(*, venue, actor, booking_id, now: datetime | None = None) -> Bo
             .select_for_update()
             .get(pk=booking_id, kind=Kind.BLOCK, status=Status.CONFIRMED)
         )
+        if block.notes.startswith(CLOSED_DAY_MARK):
+            raise RuleViolation(_("This day is closed. Use Reopen this day instead."))
         block.status = Status.CANCELLED
         block.cancelled_at = _now(now)
         block.cancelled_by = actor
         block.save()
         _event(block, actor, EventAction.CANCELLED)
     return block
+
+
+# ---------------------------------------------------------------- closed days (V15, BR-16)
+
+
+class DayHasBookings(RuleViolation):
+    """Closing a day that has bookings needs "Cancel all and send SMS" (BR-16)."""
+
+    def __init__(self, bookings):
+        super().__init__(
+            ngettext(
+                "%(count)d booking on this day.", "%(count)d bookings on this day.", len(bookings)
+            )
+            % {"count": len(bookings)}
+        )
+        self.bookings = bookings
+
+
+def _day_range(day: date, now: datetime) -> tuple[datetime, datetime]:
+    """The operating day 03:00-03:00; for today, from now on (games already played stay)."""
+    start = at_operating_minute(day, DAY_START_MINUTE)
+    end = at_operating_minute(day + timedelta(days=1), DAY_START_MINUTE)
+    return max(start, now.replace(second=0, microsecond=0)), end
+
+
+def day_closure(venue, day: date) -> list[Booking]:
+    """The active "closed for the day" blocks of this operating day (empty if open)."""
+    return list(
+        Booking.objects.for_venue(venue).filter(
+            kind=Kind.BLOCK,
+            block_reason=BlockReason.CLOSED,
+            block_group__isnull=False,
+            status=Status.CONFIRMED,
+            operating_date=day,
+            notes__startswith=CLOSED_DAY_MARK,
+        )
+    )
+
+
+def bookings_in_the_way(venue, day: date, *, now: datetime | None = None) -> list[Booking]:
+    """Bookings a closure of ``day`` would cancel (V15 list: name, time, phone)."""
+    start, end = _day_range(day, _now(now))
+    return list(
+        Booking.objects.for_venue(venue)
+        .filter(kind=Kind.BOOKING, status__in=ACTIVE_STATUSES, start_at__lt=end, end_at__gt=start)
+        .select_related("court", "venue_customer")
+        .order_by("start_at", "court__position")
+    )
+
+
+def close_day(
+    *,
+    venue,
+    actor,
+    day: date,
+    note: str = "",
+    cancel_bookings: bool = False,
+    now: datetime | None = None,
+) -> int:
+    """Close the whole venue for one operating day (US-O03, BR-16). Returns bookings cancelled.
+
+    Every court gets a "closed" block for the day (for today: from now on), so players see the
+    day as closed and no slot can be booked. With bookings in the way, nothing happens unless
+    ``cancel_bookings`` is set: then each is cancelled (reason "venue closed") and its customer
+    gets the cancellation SMS. Other blocks that day are replaced by the closure (founders,
+    27 Nov 2026). A game already being played can't be cancelled, so it blocks the closure.
+    """
+    now = _now(now)
+    _require_member(venue, actor)
+    if day < operating_date(now):
+        raise RuleViolation(_("You can't close a day that has passed."))
+    start, end = _day_range(day, now)
+    with transaction.atomic():
+        advisory_xact_lock(f"close-day:{venue.pk}:{day.isoformat()}")
+        if day_closure(venue, day):
+            raise RuleViolation(_("This day is already closed."))
+        playing = Booking.objects.for_venue(venue).filter(
+            kind=Kind.BOOKING, status__in=ACTIVE_STATUSES, start_at__lt=start, end_at__gt=start
+        )
+        if game := playing.select_related("court").order_by("end_at").last():
+            raise RuleViolation(
+                _("A game is on now (%(court)s, until %(time)s). Close the day after it ends.")
+                % {"court": game.court.name, "time": format_time(game.end_at)}
+            )
+        bookings = (
+            Booking.objects.for_venue(venue)
+            .filter(
+                kind=Kind.BOOKING, status__in=ACTIVE_STATUSES, start_at__lt=end, end_at__gt=start
+            )
+            .select_for_update(of=("self",))
+            .select_related("venue", "court", "venue_customer")
+            .order_by("start_at")
+        )
+        bookings = list(bookings)
+        if bookings and not cancel_bookings:
+            raise DayHasBookings(bookings)
+        for booking in bookings:
+            _cancel(booking, actor=actor, reason=CancelReason.VENUE_CLOSED, late=False, now=now)
+            notifications.queue_booking_sms(booking, "booking_cancelled")
+        # Option (a): other blocks that day give way to the closure.
+        for block in Booking.objects.for_venue(venue).filter(
+            kind=Kind.BLOCK, status=Status.CONFIRMED, start_at__lt=end, end_at__gt=start
+        ):
+            block.status = Status.CANCELLED
+            block.cancelled_at = now
+            block.cancelled_by = actor
+            block.save()
+            _event(block, actor, EventAction.CANCELLED, replaced_by="closed_day")
+        group = uuid.uuid4()
+        notes = (CLOSED_DAY_MARK + " " + " ".join((note or "").split())).strip()[:255]
+        for court in Court.objects.for_venue(venue):
+            block = Booking(
+                venue=venue,
+                court=court,
+                kind=Kind.BLOCK,
+                status=Status.CONFIRMED,
+                start_at=start,
+                end_at=end,
+                operating_date=day,
+                block_reason=BlockReason.CLOSED,
+                block_group=group,
+                notes=notes,
+                created_by=actor,
+            )
+            _save_checked(block, insert=True)
+            _event(block, actor, EventAction.CREATED, **_snapshot(block), kind=Kind.BLOCK)
+    logger.info("venue.day_closed venue_id=%s day=%s cancelled=%s", venue.pk, day, len(bookings))
+    return len(bookings)
+
+
+def reopen_day(*, venue, actor, day: date, now: datetime | None = None) -> None:
+    """Undo a closure. Blocks it replaced are not brought back (founders, 27 Nov 2026)."""
+    now = _now(now)
+    _require_member(venue, actor)
+    with transaction.atomic():
+        closure = day_closure(venue, day)
+        if not closure:
+            raise RuleViolation(_("This day isn't closed."))
+        for block in closure:
+            block.status = Status.CANCELLED
+            block.cancelled_at = now
+            block.cancelled_by = actor
+            block.save()
+            _event(block, actor, EventAction.CANCELLED)
+
+
+def closure_note(blocks: list[Booking]) -> str:
+    """The staff note typed when closing ("Poya day"), never shown to players."""
+    if not blocks:
+        return ""
+    return blocks[0].notes.removeprefix(CLOSED_DAY_MARK).strip()
 
 
 # ---------------------------------------------------------------- moving (US-S04)

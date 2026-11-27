@@ -1,0 +1,35 @@
+{% extends "venues/_layout.html" %}
+{% load i18n matchvia %}
+
+{% block staff_note %}{% endblock %}
+
+{% block venue_content %}
+  <form method="post" action="{% url 'manage:close_day' venue.pk %}" class="space-y-4" novalidate>
+    {% csrf_token %}
+    <div class="space-y-1">
+      <h2 class="text-lg font-semibold">{% translate "Close the venue for a day" %}</h2>
+      <p class="text-sm text-slate-600">{% translate "For a Poya day, a holiday or repairs. Every court is closed for the whole day." %}</p>
+    </div>
+    {% include "components/form_errors.html" %}
+
+    {% if in_the_way %}
+      <div class="space-y-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+        <p class="font-semibold">{% blocktranslate count n=in_the_way|length %}{{ n }} booking on this day{% plural %}{{ n }} bookings on this day{% endblocktranslate %}</p>
+        <ul class="space-y-1">
+          {% for b in in_the_way %}
+            <li><a href="{% url 'manage:booking_detail' venue.pk b.pk %}" class="underline">{{ b.start_at|time12 }} · {{ b.court.name }} · {{ b.customer_name|default:"-" }}{% if b.venue_customer.phone %} · {{ b.venue_customer.phone|local_phone }}{% endif %}</a></li>
+          {% endfor %}
+        </ul>
+        <p>{% translate "The day closes only after these bookings are cancelled. Each customer with a phone number gets an SMS." %}</p>
+        {{ form.date.as_hidden }}{{ form.note.as_hidden }}
+        <button type="submit" name="cancel_all" value="1" class="w-full rounded-lg bg-red-700 px-4 py-3 font-semibold text-white" data-disable-on-submit>{% translate "Cancel all and send SMS" %}</button>
+        <a href="{% url 'manage:close_day' venue.pk %}?date={{ form.cleaned_data.date.isoformat }}" class="block text-center font-medium underline">{% translate "Go back" %}</a>
+      </div>
+    {% else %}
+      {% include "components/field.html" with field=form.date %}
+      {% include "components/field.html" with field=form.note %}
+      <button type="submit" class="w-full rounded-lg bg-slate-800 px-4 py-3 text-lg font-semibold text-white" data-disable-on-submit>{% translate "Close this day" %}</button>
+      <p class="text-sm text-slate-500">{% translate "Time already blocked on that day is replaced by the closure." %}</p>
+    {% endif %}
+  </form>
+{% endblock %}

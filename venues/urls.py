@@ -50,12 +50,30 @@ urlpatterns = [
         name="booking_arrived",
     ),
     path("<int:venue_id>/blocks/new/", booking_views.new_block, name="block_new"),
+    path("<int:venue_id>/close-day/", booking_views.close_day, name="close_day"),
+    path("<int:venue_id>/close-day/reopen/", booking_views.reopen_day, name="reopen_day"),
     path(
         "<int:venue_id>/blocks/<int:booking_id>/remove/",
         booking_views.remove_block,
         name="block_remove",
     ),
     path("<int:venue_id>/customers/lookup/", booking_views.customer_lookup, name="customer_lookup"),
+    path("<int:venue_id>/customers/", booking_views.customers, name="customers"),
+    path(
+        "<int:venue_id>/customers/<int:customer_id>/",
+        booking_views.customer_detail,
+        name="customer_detail",
+    ),
+    path(
+        "<int:venue_id>/customers/<int:customer_id>/block/",
+        booking_views.customer_block,
+        name="customer_block",
+    ),
+    path(
+        "<int:venue_id>/customers/<int:customer_id>/unblock/",
+        booking_views.customer_unblock,
+        name="customer_unblock",
+    ),
     path("<int:venue_id>/weekly/", booking_views.weekly, name="weekly"),
     path("<int:venue_id>/weekly/new/", booking_views.weekly_new, name="weekly_new"),
     path(
@@ -103,6 +121,7 @@ urlpatterns = [
     path("<int:venue_id>/hours/", views.hours, name="hours"),
     path("<int:venue_id>/prices/", views.prices, name="prices"),
     # Staff (owner only)
+    path("<int:venue_id>/rules/", views.rules, name="rules"),
     path("<int:venue_id>/staff/", views.staff, name="staff"),
     path(
         "<int:venue_id>/staff/<int:membership_id>/remove/", views.staff_remove, name="staff_remove"

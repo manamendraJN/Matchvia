@@ -150,6 +150,90 @@ def forget_customer(user, *, phone: str | None, name: str) -> int:
     return rows.update(phone=None, name=name, user=None, notes="", block_reason="")
 
 
+# ---------------------------------------------------------------- booking rules (V20, US-O05)
+
+
+def update_rule(venue: Venue, actor, field: str, value) -> VenueSettings:
+    """Owner only. ``value`` must be one of the rule's allowed answers (venues.rules).
+
+    Applies to new bookings only: existing bookings and queued reminders are not changed.
+    """
+    from .rules import RULES_BY_FIELD
+
+    _require_owner(venue, actor)
+    rule = RULES_BY_FIELD.get(field)
+    if rule is None:
+        raise ValueError(f"Unknown rule: {field}")
+    allowed = {str(v): v for v, _label in rule.choices}
+    if str(value) not in allowed:
+        raise RuleViolation(_("Choose one of the answers."))
+    value = allowed[str(value)]
+    with transaction.atomic():
+        settings_row = VenueSettings.objects.select_for_update().get(venue=venue)
+        setattr(settings_row, field, value)
+        if field == "recurring_max_weeks" and settings_row.recurring_default_weeks > value:
+            settings_row.recurring_default_weeks = value  # the default can't be above the maximum
+        settings_row.save()
+    logger.info("venue.rule_changed venue_id=%s rule=%s", venue.pk, field)
+    return settings_row
+
+
+# ---------------------------------------------------------------- customer book (V19, BR-11)
+
+
+def _customer(venue: Venue, customer_id) -> VenueCustomer:
+    customer = VenueCustomer.objects.for_venue(venue).select_for_update().get(pk=customer_id)
+    if customer.phone is None:  # deleted their account (BR-25): nothing to change
+        raise RuleViolation(_("This customer deleted their account."))
+    return customer
+
+
+def update_customer(venue: Venue, actor, customer_id, *, name: str, notes: str) -> VenueCustomer:
+    """Owner or staff fix the name or add notes ("Regular Tuesday team"). Old bookings keep
+    the name they were made with."""
+    if member_role(venue, actor) is None:
+        raise NotAllowed(_("Only this venue's owner and staff can do this."))
+    name = " ".join((name or "").split())
+    if not name:
+        raise RuleViolation(_("Enter their name."))
+    with transaction.atomic():
+        customer = _customer(venue, customer_id)
+        customer.name = name[:80]
+        customer.notes = " ".join((notes or "").split())[:255]
+        customer.save(update_fields=["name", "notes", "updated_at"])
+    return customer
+
+
+def block_customer_online(venue: Venue, actor, customer_id, *, reason: str = "") -> VenueCustomer:
+    """Owner only: this number can't book this venue online any more (US-O09, BR-11).
+
+    Their existing bookings stay, staff can still book them, and other venues are not affected.
+    """
+    _require_owner(venue, actor)
+    with transaction.atomic():
+        customer = _customer(venue, customer_id)
+        customer.is_blocked_online = True
+        customer.blocked_at = timezone.now()
+        customer.blocked_by = actor
+        customer.block_reason = " ".join((reason or "").split())[:255]
+        customer.save()
+    logger.info("customer.blocked venue_id=%s customer_id=%s", venue.pk, customer.pk)
+    return customer
+
+
+def unblock_customer_online(venue: Venue, actor, customer_id) -> VenueCustomer:
+    _require_owner(venue, actor)
+    with transaction.atomic():
+        customer = _customer(venue, customer_id)
+        customer.is_blocked_online = False
+        customer.blocked_at = None
+        customer.blocked_by = None
+        customer.block_reason = ""
+        customer.save()
+    logger.info("customer.unblocked venue_id=%s customer_id=%s", venue.pk, customer.pk)
+    return customer
+
+
 def _require_owner(venue: Venue, actor) -> None:
     if (
         not VenueMembership.objects.for_venue(venue)

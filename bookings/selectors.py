@@ -9,9 +9,10 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
-from django.db.models import Q
+from django.db.models import Count, F, Max, Q
 from django.utils import timezone
 
+from core.phone import InvalidPhone, normalise_phone
 from core.timeutils import (
     DAY_END_MINUTE,
     DAY_START_MINUTE,
@@ -21,9 +22,9 @@ from core.timeutils import (
     operating_minute,
 )
 from pricing import services as pricing
-from venues.models import Court, OpeningHours, Venue
+from venues.models import Court, OpeningHours, Venue, VenueCustomer
 
-from .models import ACTIVE_STATUSES, Booking, Kind, Status
+from .models import ACTIVE_STATUSES, Booking, Kind, RecurringSeries, Status
 
 # Time-of-day filters for search, in operating minutes (screens P1).
 TIME_WINDOWS = {
@@ -152,6 +153,21 @@ class VenueDay:
         return any(chip.available for _court, chips in self.courts for chip in chips)
 
 
+def _closed_for_the_day(venue: Venue, day: date) -> bool:
+    """Staff closed the whole day (V15). Players only ever see "Closed", never the note."""
+    return (
+        Booking.objects.for_venue(venue)
+        .filter(
+            kind=Kind.BLOCK,
+            block_reason="closed",
+            status=Status.CONFIRMED,
+            operating_date=day,
+            notes__startswith="[closed day]",
+        )
+        .exists()
+    )
+
+
 def venue_day(venue: Venue, day: date, *, now: datetime | None = None) -> VenueDay:
     """Free and unavailable times per court for players (US-P03). Blocks show as 'Unavailable'."""
     now = now or timezone.now()
@@ -162,7 +178,7 @@ def venue_day(venue: Venue, day: date, *, now: datetime | None = None) -> VenueD
     if day > booking_horizon_end(venue, now):
         return VenueDay(day, "beyond_horizon")
     hours = OpeningHours.objects.for_venue(venue).filter(weekday=day.weekday()).first()
-    if hours is None or hours.is_closed:
+    if hours is None or hours.is_closed or _closed_for_the_day(venue, day):
         return VenueDay(day, "closed")
     courts = list(Court.objects.for_venue(venue).filter(is_active=True))
     windows = pricing.peak_windows(venue)
@@ -317,3 +333,50 @@ def bookings_on_day(day) -> int:
     return Booking.objects.filter(
         kind=Kind.BOOKING, status__in=ACTIVE_STATUSES, operating_date=day
     ).count()
+
+
+# ---------------------------------------------------------------- customer book (V18, V19)
+
+
+def customer_book(venue: Venue, query: str = ""):
+    """This venue's customers with counts from its bookings, most recent booking first (V18).
+
+    ``query`` matches the name, or the phone number typed any common way. Other venues'
+    customers never appear, even with the same phone number (rule 2).
+    """
+    bookings = Q(bookings__kind=Kind.BOOKING)
+    customers = VenueCustomer.objects.for_venue(venue).annotate(
+        booking_count=Count("bookings", filter=bookings),
+        no_show_count=Count("bookings", filter=bookings & Q(bookings__status=Status.NO_SHOW)),
+        last_booking=Max("bookings__start_at", filter=bookings),
+    )
+    query = " ".join((query or "").split())
+    if query:
+        try:
+            customers = customers.filter(phone=normalise_phone(query))
+        except InvalidPhone:
+            customers = customers.filter(name__icontains=query)
+    return customers.order_by(F("last_booking").desc(nulls_last=True), "name", "pk")
+
+
+def customer_history(venue: Venue, customer, *, now: datetime | None = None) -> dict:
+    """Upcoming and past bookings and weekly slots of one customer at this venue (V19)."""
+    now = now or timezone.now()
+    bookings = (
+        Booking.objects.for_venue(venue)
+        .filter(venue_customer=customer, kind=Kind.BOOKING)
+        .select_related("court")
+    )
+    return {
+        "upcoming": list(
+            bookings.filter(status=Status.CONFIRMED, end_at__gt=now).order_by("start_at")
+        ),
+        "past": list(
+            bookings.exclude(status=Status.CONFIRMED, end_at__gt=now).order_by("-start_at")[:50]
+        ),
+        "series": list(
+            RecurringSeries.objects.for_venue(venue)
+            .filter(venue_customer=customer, status__in=["pending", "approved"])
+            .select_related("court")
+        ),
+    }

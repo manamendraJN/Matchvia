@@ -15,7 +15,14 @@ from bookings import services as booking_services
 from bookings.models import Booking, RecurringSeries
 from core.timeutils import at_operating_minute, operating_date
 from venues import services, urls
-from venues.models import Court, OpeningHours, Venue, VenuePhoto
+from venues.models import (
+    Court,
+    OpeningHours,
+    Venue,
+    VenueCustomer,
+    VenuePhoto,
+    VenueSettings,
+)
 
 from .factories import add_staff, area, image_file, make_court, make_venue
 
@@ -155,6 +162,20 @@ REGISTRY = {
     "setup_hours": (lambda t: {}, lambda t: _hours_data()),
     "setup_prices": (lambda t: {}, lambda t: _prices_data(t)),
     "setup_review": (lambda t: {}, lambda t: {}),
+    # Customers, closed days, rules (Must items)
+    "customers": (lambda t: {}, lambda t: {}),
+    "customer_detail": (
+        lambda t: {"customer_id": t.booking.venue_customer_id},
+        lambda t: {"name": "Hacked", "notes": "x"},
+    ),
+    "customer_block": (lambda t: {"customer_id": t.booking.venue_customer_id}, lambda t: {}),
+    "customer_unblock": (lambda t: {"customer_id": t.booking.venue_customer_id}, lambda t: {}),
+    "close_day": (
+        lambda t: {},
+        lambda t: {"date": (_tomorrow() + timedelta(days=3)).isoformat(), "cancel_all": "1"},
+    ),
+    "reopen_day": (lambda t: {}, lambda t: {"date": _tomorrow().isoformat()}),
+    "rules": (lambda t: {}, lambda t: {"rule": "booking_horizon_days", "value": "60"}),
 }
 # Who may use each URL on their own venue:
 #   "all"       owner and staff can open it (GET)
@@ -202,6 +223,13 @@ ACCESS = {
     "setup_hours": "owner",
     "setup_prices": "owner",
     "setup_review": "owner",
+    "customers": "all",
+    "customer_detail": "all",
+    "customer_block": "owner",
+    "customer_unblock": "owner",
+    "close_day": "all",
+    "reopen_day": "all_post",
+    "rules": "owner",
 }
 
 
@@ -264,6 +292,12 @@ def fingerprint(venue: Venue):
             .order_by("pk")
             .values_list("pk", "status", "updated_at")
         ),
+        list(
+            VenueCustomer.objects.for_venue(venue)
+            .order_by("pk")
+            .values_list("pk", "name", "phone", "notes", "is_blocked_online", "updated_at")
+        ),
+        VenueSettings.objects.filter(venue=venue).values_list("updated_at", flat=True).first(),
     )
 
 
@@ -347,6 +381,9 @@ def urls_with_object_ids() -> set[str]:
 
 OBJECT_URLS = [
     "court_edit",
+    "customer_detail",
+    "customer_block",
+    "customer_unblock",
     "setup_court_edit",
     "court_toggle",
     "photo_remove",
