@@ -286,3 +286,82 @@ def test_captain_removes_and_revokes_from_the_page(client, captain, team):
     assert not TeamMembership.objects.filter(user=member).exists()
     invitation.refresh_from_db()
     assert invitation.status == "revoked"
+
+
+# ---------------------------------------------------------------- hand over and close (C9)
+
+
+def _member(team):
+    player = UserFactory(name="Nimal")
+    TeamMembership.objects.create(team=team, user=player)
+    return player
+
+
+def test_captain_hands_the_team_to_a_member(client, captain, team):
+    player = _member(team)
+    client.force_login(captain)
+    response = client.post(reverse("team_make_captain", args=[team.pk, player.pk]))
+    assert response.status_code == 302
+    team.refresh_from_db()
+    assert team.captain == player
+    assert list(services.captained_teams(captain)) == []
+    # The old captain is still a member and can no longer use captain actions.
+    assert services.is_member(captain, team)
+    assert client.post(reverse("team_make_captain", args=[team.pk, captain.pk])).status_code == 404
+
+
+def test_make_captain_rules(captain, team):
+    with pytest.raises(RuleViolation, match="already the captain"):
+        services.make_captain(captain, team.pk, captain.pk)
+    stranger = UserFactory()
+    with pytest.raises(TeamMembership.DoesNotExist):
+        services.make_captain(captain, team.pk, stranger.pk)
+    gone = _member(team)
+    gone.is_active = False
+    gone.save()
+    with pytest.raises(TeamMembership.DoesNotExist):
+        services.make_captain(captain, team.pk, gone.pk)
+    with pytest.raises(Team.DoesNotExist):
+        services.make_captain(stranger, team.pk, captain.pk)
+
+
+def test_make_captain_view_shows_rule_errors(client, captain, team):
+    client.force_login(captain)
+    response = client.post(reverse("team_make_captain", args=[team.pk, captain.pk]), follow=True)
+    assert "already the captain" in response.content.decode()
+
+
+def test_captain_closes_the_team(client, captain, team):
+    player = _member(team)
+    services.invite(captain, team.pk, phone="+94770000111", now=T0)
+    client.force_login(captain)
+    page = client.get(reverse("team_close", args=[team.pk]))
+    assert page.status_code == 200
+    assert "Games already booked stay booked." in page.content.decode()
+
+    response = client.post(reverse("team_close", args=[team.pk]))
+
+    assert response.status_code == 302
+    assert response.url == reverse("my_teams")
+    team.refresh_from_db()
+    assert not team.is_active
+    assert list(services.teams_for(player)) == []
+    assert not TeamInvite.objects.filter(team=team, status="pending").exists()
+    assert client.get(reverse("team_detail", args=[team.pk])).status_code == 404
+
+
+def test_only_the_captain_can_close(client, captain, team):
+    player = _member(team)
+    client.force_login(player)
+    assert client.get(reverse("team_close", args=[team.pk])).status_code == 404
+    assert client.post(reverse("team_close", args=[team.pk])).status_code == 404
+    team.refresh_from_db()
+    assert team.is_active
+
+
+def test_team_page_offers_hand_over_and_close_to_the_captain(client, captain, team):
+    _member(team)
+    client.force_login(captain)
+    html = client.get(reverse("team_detail", args=[team.pk])).content.decode()
+    assert "Make captain" in html
+    assert "Close team" in html

@@ -126,6 +126,50 @@ def remove_member(captain, team_id, user_id) -> None:
         raise TeamMembership.DoesNotExist
 
 
+def make_captain(captain, team_id, user_id) -> Team:
+    """Hand the team to another member (US-P08: a captain hands over before deleting)."""
+    with transaction.atomic():
+        team = Team.objects.select_for_update().get(
+            pk=_captains_team(captain, team_id).pk, is_active=True
+        )
+        if int(user_id) == captain.pk:
+            raise RuleViolation(_("You are already the captain."))
+        member = TeamMembership.objects.select_related("user").get(team=team, user_id=user_id)
+        if not member.user.is_active:
+            raise TeamMembership.DoesNotExist
+        team.captain = member.user
+        team.save(update_fields=["captain", "updated_at"])
+    logger.info("team.captain_changed id=%s", team.pk)
+    return team
+
+
+def close_team(captain, team_id) -> None:
+    """Close the team: it disappears for every member and open invites stop working.
+
+    Bookings already tagged with the team stay booked; they are the captain's bookings.
+    """
+    with transaction.atomic():
+        team = Team.objects.select_for_update().get(
+            pk=_captains_team(captain, team_id).pk, is_active=True
+        )
+        team.is_active = False
+        team.save(update_fields=["is_active", "updated_at"])
+        TeamInvite.objects.filter(team=team, status=InviteStatus.PENDING).update(
+            status=InviteStatus.REVOKED
+        )
+    logger.info("team.closed id=%s", team.pk)
+
+
+def leave_all_teams(user) -> None:
+    """Account deletion: remove the user from every team and drop invites to their number.
+
+    The caller has already checked they captain no active team (accounts.services).
+    """
+    TeamMembership.objects.filter(user=user).delete()
+    if user.phone:
+        TeamInvite.objects.filter(phone=user.phone).delete()
+
+
 # ---------------------------------------------------------------- invites
 
 

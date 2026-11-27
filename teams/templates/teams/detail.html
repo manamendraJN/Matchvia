@@ -16,10 +16,16 @@
         <li class="flex items-center justify-between py-3">
           <span>{{ m.user.name }}{% if m.user_id == team.captain_id %} <span class="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">{% translate "Captain" %}</span>{% endif %}</span>
           {% if is_captain and m.user_id != team.captain_id %}
-            <form method="post" action="{% url 'team_remove_member' team.pk m.user_id %}">
-              {% csrf_token %}
-              <button type="submit" class="text-sm font-medium text-red-700 hover:underline">{% translate "Remove" %}</button>
-            </form>
+            <span class="flex items-center gap-4">
+              <form method="post" action="{% url 'team_make_captain' team.pk m.user_id %}">
+                {% csrf_token %}
+                <button type="submit" class="text-sm font-medium text-slate-700 hover:underline">{% translate "Make captain" %}</button>
+              </form>
+              <form method="post" action="{% url 'team_remove_member' team.pk m.user_id %}">
+                {% csrf_token %}
+                <button type="submit" class="text-sm font-medium text-red-700 hover:underline">{% translate "Remove" %}</button>
+              </form>
+            </span>
           {% endif %}
         </li>
       {% endfor %}
@@ -60,5 +66,9 @@
         <p class="text-sm text-slate-600">{% translate "No upcoming team games." %}</p>
       {% endfor %}
     </div>
+
+    {% if is_captain %}
+      <a href="{% url 'team_close' team.pk %}" class="block text-center text-sm font-medium text-red-700 hover:underline">{% translate "Close team" %}</a>
+    {% endif %}
   </section>
 {% endblock %}

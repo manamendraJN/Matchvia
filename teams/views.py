@@ -115,6 +115,34 @@ def remove_member(request, team_id, user_id):
 @profile_required
 @_404_if_missing
 @require_POST
+def make_captain(request, team_id, user_id):
+    try:
+        team = services.make_captain(request.user, team_id, user_id)
+    except RuleViolation as exc:
+        messages.error(request, exc.message)
+    else:
+        messages.success(request, _("%(name)s is now the captain.") % {"name": team.captain.name})
+    return redirect("team_detail", team_id=team_id)
+
+
+@never_cache
+@profile_required
+@_404_if_missing
+@require_http_methods(["GET", "POST"])
+def close(request, team_id):
+    """Confirm, then close the team (captain only)."""
+    team = services.captained_teams(request.user).get(pk=team_id)
+    if request.method == "POST":
+        services.close_team(request.user, team.pk)
+        messages.success(request, _("%(team)s is closed.") % {"team": team.name})
+        return redirect("my_teams")
+    return render(request, "teams/close.html", {"team": team})
+
+
+@never_cache
+@profile_required
+@_404_if_missing
+@require_POST
 def revoke_invite(request, team_id, invite_id):
     services.revoke_invite(request.user, team_id, invite_id)
     messages.success(request, _("Invite removed."))

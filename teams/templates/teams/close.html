@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "Close team" %} · Matchvia{% endblock %}
+
+{% block content %}
+  <section class="space-y-5">
+    <h1 class="text-2xl font-bold tracking-tight">{% blocktranslate with team=team.name %}Close {{ team }}?{% endblocktranslate %}</h1>
+    <ul class="list-disc space-y-1 pl-5 text-slate-700">
+      <li>{% translate "The team disappears for every player in it." %}</li>
+      <li>{% translate "Invites that haven't been answered stop working." %}</li>
+      <li>{% translate "Games already booked stay booked." %}</li>
+    </ul>
+    <p class="text-sm text-slate-600">{% translate "To keep the team going without you, make another player captain instead." %}</p>
+    <form method="post" class="grid gap-3">
+      {% csrf_token %}
+      <button type="submit" class="rounded-lg bg-red-700 px-4 py-3 text-lg font-semibold text-white">{% translate "Close team" %}</button>
+      <a href="{% url 'team_detail' team.pk %}" class="text-center text-sm text-slate-600 hover:underline">{% translate "Keep the team" %}</a>
+    </form>
+  </section>
+{% endblock %}

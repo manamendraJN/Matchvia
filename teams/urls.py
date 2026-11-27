@@ -14,6 +14,12 @@ urlpatterns = [
         name="team_remove_member",
     ),
     path(
+        "me/teams/<int:team_id>/members/<int:user_id>/captain/",
+        views.make_captain,
+        name="team_make_captain",
+    ),
+    path("me/teams/<int:team_id>/close/", views.close, name="team_close"),
+    path(
         "me/teams/<int:team_id>/invites/<int:invite_id>/remove/",
         views.revoke_invite,
         name="team_revoke_invite",
