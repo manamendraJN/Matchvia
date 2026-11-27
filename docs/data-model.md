@@ -372,7 +372,7 @@ booked online, by phone or by WhatsApp.
 | price_lkr | PositiveInteger, default 0 | Stored at booking time (US-P04). 0 for blocks |
 | price_change_reason | CharField(255), blank | Required when staff change the calculated price (BR-19) |
 | block_reason | CharField: `maintenance`, `private_event`, `coaching`, `closed`, `other`, blank | **CK**. Only for blocks |
-| block_group | UUIDField, null | Groups blocks created in one action (for example a closed date on every court) |
+| block_group | UUIDField, null | Groups blocks created in one action (for example a closed date on every court). A closed day (V15) is one `closed` block per court for the whole operating day (from now on, if today) whose `notes` start with `[closed day]`, then the staff note |
 | notes | CharField(255), blank | Staff notes |
 | hold_expires_at | DateTimeField, null | Only for `held` (Phase 2) |
 | cancelled_at | DateTimeField, null | |

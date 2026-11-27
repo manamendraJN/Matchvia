@@ -86,8 +86,8 @@ changed) before the step that needs it.
 
 ### Milestone 2: Demo slice (about 13 days)
 
-- [ ] **S13** Venue page and slot picker (P3) · 2.5 d
-- [ ] **S14** Booking review and confirmation (P4–P8) · 2 d
+- [x] **S13** Venue page and slot picker (P3) · 2.5 d
+- [x] **S14** Booking review and confirmation (P4–P8) · 2 d
 - [x] **S15** Venue calendar, day and week (V7–V9) · 3 d
 - [x] **S16** New booking sheet and booking actions (V10–V13) · 3 d
 - [x] **S17** Booking SMS and reminders · 1.5 d
@@ -95,12 +95,12 @@ changed) before the step that needs it.
 
 ### Milestone 3: Complete the Must requirements (about 17.5 days)
 
-- [ ] **S19** Search and results (P1, P2) · 2 d
-- [ ] **S20** My bookings, details and cancel (P9–P11) · 1.5 d
+- [x] **S19** Search and results (P1, P2) · 2 d
+- [x] **S20** My bookings, details and cancel (P9–P11) · 1.5 d
 - [x] **S21** Venue setup wizard and photos (V1–V6) · 3 d
-- [ ] **S22** Blocks and closed days (V14, V15) · 2.5 d
-- [ ] **S23** Customer book and online blocking (V18, V19) · 1.5 d
-- [ ] **S24** Venue settings, courts, hours, prices, staff, profile (V20–V25) · 3 d
+- [x] **S22** Blocks and closed days (V14, V15) · 2.5 d
+- [x] **S23** Customer book and online blocking (V18, V19) · 1.5 d
+- [x] **S24** Venue settings, courts, hours, prices, staff, profile (V20–V25) · 3 d
 - [x] **S25** Platform admin (A1–A5) · 2 d
 - [x] **S26** Account, deletion and privacy pages (P18–P20) · 2 d
 
@@ -651,3 +651,7 @@ security.
 | S25 | 26 Nov 2026 | 27 Nov 2026 | | Prompts C3 and C9: area admin, venue review with owner SMS; admin password sign-in with IP and per-number limits and 8-hour admin access; admin home counts and waiting venues; booking lookup by reference or phone; read-only access log written on every view/search of personal data. Cloudflare Access in front of the admin comes with deployment (C10) |
 | S26 | 26 Nov 2026 | 27 Nov 2026 | | Prompts C2 and C9: deletion now cancels future bookings and weekly bookings with one SMS per venue, anonymises venue customer rows and booking names (numbers matched too), ends team and staff roles, drops invites; owner/captain hand-over rule with Make captain and Close team; admin "Delete account (PDPA request)" action |
 | S21 | 27 Nov 2026 | 27 Nov 2026 | | Setup wizard for draft venues: "Step N of 6" pages V1-V6 with Next/Back and "Finish later", reopens at the next unfinished step (`Venue.setup_step`); My venues and the draft banner ("Continue setup") lead there; Leaflet map pin (vendored 1.9.4, OpenStreetMap tiles) with "Use my current location" on V2 and the Venue tab; review page with Edit links, missing items and a Rs. 0 price warning. Still to do: sports question on V1 (courts carry the sports instead), the V3 court-count stepper (courts are added one by one), the "same hours every day" and "same prices for all courts" shortcuts, photo upload progress/retry, and notifying the admin on submit |
+| S22 | 26 Nov 2026 | 27 Nov 2026 | | Close the venue for a day (V15): every court closed for the operating day, bookings listed with "Cancel all and send SMS" (reason venue closed, customer SMS), other blocks replaced, Reopen this day; players see "Closed" and the day drops out of search; entry from the calendar and the Hours tab |
+| S23 | 27 Nov 2026 | 27 Nov 2026 | | Customer book (V18): search by name or phone, counts from bookings, newest first, Call. Customer page (V19): Call/WhatsApp, counts, upcoming/past bookings, weekly slots, name and notes (owner and staff), Block from online booking / Unblock (owner only); deleted users show without number or actions |
+| S24 | 26 Nov 2026 | 27 Nov 2026 | | Booking rules (V20): each rule as a plain question with allowed answers only and Save per rule; lowering the weekly maximum lowers the default. Search cache invalidation still to do (no search cache yet) |
+| S10 (Turnstile), S09 (system pages) | 27 Nov 2026 | 27 Nov 2026 | | Turnstile on the sign-in form (off without keys, required in production, fails closed). 404/500/429 pages, offline page and a service worker that only serves the offline page when the network fails. Still to do: Sentry (C10), venue phone numbers on the offline page, pseudo-locale |
