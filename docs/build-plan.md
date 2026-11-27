@@ -97,7 +97,7 @@ changed) before the step that needs it.
 
 - [ ] **S19** Search and results (P1, P2) · 2 d
 - [ ] **S20** My bookings, details and cancel (P9–P11) · 1.5 d
-- [ ] **S21** Venue setup wizard and photos (V1–V6) · 3 d
+- [x] **S21** Venue setup wizard and photos (V1–V6) · 3 d
 - [ ] **S22** Blocks and closed days (V14, V15) · 2.5 d
 - [ ] **S23** Customer book and online blocking (V18, V19) · 1.5 d
 - [ ] **S24** Venue settings, courts, hours, prices, staff, profile (V20–V25) · 3 d
@@ -650,3 +650,4 @@ security.
 | S33 | 27 Nov 2026 | 27 Nov 2026 | | Prompt C8 part B: captain requests (P12) that reserve nothing, venue notified, approve/reject with preview (V17) under the BR-13 approver setting, 48-hour expiry job, P13 |
 | S25 | 26 Nov 2026 | 27 Nov 2026 | | Prompts C3 and C9: area admin, venue review with owner SMS; admin password sign-in with IP and per-number limits and 8-hour admin access; admin home counts and waiting venues; booking lookup by reference or phone; read-only access log written on every view/search of personal data. Cloudflare Access in front of the admin comes with deployment (C10) |
 | S26 | 26 Nov 2026 | 27 Nov 2026 | | Prompts C2 and C9: deletion now cancels future bookings and weekly bookings with one SMS per venue, anonymises venue customer rows and booking names (numbers matched too), ends team and staff roles, drops invites; owner/captain hand-over rule with Make captain and Close team; admin "Delete account (PDPA request)" action |
+| S21 | 27 Nov 2026 | 27 Nov 2026 | | Setup wizard for draft venues: "Step N of 6" pages V1-V6 with Next/Back and "Finish later", reopens at the next unfinished step (`Venue.setup_step`); My venues and the draft banner ("Continue setup") lead there; Leaflet map pin (vendored 1.9.4, OpenStreetMap tiles) with "Use my current location" on V2 and the Venue tab; review page with Edit links, missing items and a Rs. 0 price warning. Still to do: sports question on V1 (courts carry the sports instead), the V3 court-count stepper (courts are added one by one), the "same hours every day" and "same prices for all courts" shortcuts, photo upload progress/retry, and notifying the admin on submit |

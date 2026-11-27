@@ -172,6 +172,7 @@ without a shared cache. The cost is one indexed query per OTP request, which is 
 | status_reason | CharField(255), blank | Rejection or suspension reason |
 | status_changed_at | DateTimeField, null | |
 | status_changed_by | FK User, SET_NULL, null | Admin who approved, rejected or suspended |
+| setup_step | SmallInteger, default 1 | Last finished setup step (1-5, **CK**); setup of a draft venue reopens at the next step (screens 3.1) |
 | created_at / updated_at | DateTimeField | |
 
 - **IX** `(area, status)` for search.
