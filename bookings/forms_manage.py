@@ -1,6 +1,7 @@
 """Forms for the venue dashboard (V10-V14). Every court choice is scoped to the venue (6.2)."""
 
 from django import forms
+from django.core.validators import MaxValueValidator
 from django.utils.translation import gettext_lazy as _
 
 from core.forms import CHECKBOX_CLASS, INPUT_CLASS, SELECT_CLASS
@@ -187,3 +188,63 @@ class BlockForm(_VenueCourtMixin, forms.Form):
         if start is not None and end is not None and end <= start:
             raise forms.ValidationError(_("End time must be after start time."))
         return data
+
+
+class WeeklyForm(_VenueCourtMixin, forms.Form):
+    """V16: a regular team's weekly slot entered by staff (US-S08)."""
+
+    customer_name = forms.CharField(
+        label=_("Customer or team name"),
+        max_length=80,
+        widget=forms.TextInput(attrs={"class": INPUT_CLASS}),
+    )
+    customer_phone = forms.CharField(
+        label=_("Phone"),
+        max_length=32,
+        error_messages={"required": _("Add a phone number so we can send the schedule.")},
+        widget=forms.TextInput(attrs={"class": INPUT_CLASS, "inputmode": "tel"}),
+    )
+    court = forms.ModelChoiceField(
+        label=_("Court"),
+        queryset=Court.objects.none(),
+        widget=forms.Select(attrs={"class": SELECT_CLASS}),
+    )
+    first_date = forms.DateField(
+        label=_("First week"),
+        widget=forms.DateInput(attrs={"type": "date", "class": INPUT_CLASS}),
+    )
+    start_minute = _minute_field(_("Start"), START_CHOICES)
+    slots = forms.TypedChoiceField(
+        label=_("How long? (slots)"),
+        coerce=int,
+        choices=[(n, n) for n in range(1, MAX_STAFF_SLOTS + 1)],
+        initial=1,
+        widget=forms.Select(attrs={"class": SELECT_CLASS}),
+    )
+    weeks = forms.IntegerField(
+        label=_("Number of weeks"),
+        min_value=2,
+        widget=forms.NumberInput(attrs={"class": INPUT_CLASS, "inputmode": "numeric"}),
+    )
+
+    def __init__(self, *args, venue, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.scope_courts(venue)
+        limit = venue.settings.recurring_max_weeks
+        self.fields["weeks"].max_value = limit
+        self.fields["weeks"].validators.append(MaxValueValidator(limit))
+        self.fields["weeks"].initial = venue.settings.recurring_default_weeks
+
+    def clean_customer_phone(self):
+        try:
+            return normalise_phone(self.cleaned_data["customer_phone"])
+        except InvalidPhone:
+            raise forms.ValidationError(
+                _("Add a phone number so we can send the schedule.")
+            ) from None
+
+
+class SeriesCancelForm(forms.Form):
+    reason = forms.ChoiceField(
+        label=_("Why?"), choices=CancelReason.choices, widget=forms.RadioSelect(attrs=CHIP)
+    )

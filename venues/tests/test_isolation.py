@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from accounts.tests.factories import UserFactory
 from bookings import services as booking_services
-from bookings.models import Booking
+from bookings.models import Booking, RecurringSeries
 from core.timeutils import at_operating_minute, operating_date
 from venues import services, urls
 from venues.models import Court, OpeningHours, Venue, VenuePhoto
@@ -82,6 +82,19 @@ def _move_data(target):
     return {"court": target.court.pk, "date": _tomorrow().isoformat(), "start_minute": "1260"}
 
 
+def _weekly_data(target):
+    return {
+        "customer_name": "Intruders FC",
+        "customer_phone": "0715559999",
+        "court": target.court.pk,
+        "first_date": (_tomorrow() + timedelta(days=14)).isoformat(),
+        "start_minute": "1260",
+        "slots": "1",
+        "weeks": "2",
+        "create": "1",
+    }
+
+
 def _block_data(target):
     return {
         "courts": [target.court.pk],
@@ -122,6 +135,11 @@ REGISTRY = {
     "customer_lookup": (lambda t: {}, lambda t: {"customer_phone": "0715551234"}),
     "staff": (lambda t: {}, lambda t: {"name": "Mole", "phone": "0719998888", "role": "owner"}),
     "staff_remove": (lambda t: {"membership_id": t.membership.pk}, lambda t: {}),
+    # Weekly bookings (C8)
+    "weekly": (lambda t: {}, lambda t: {}),
+    "weekly_new": (lambda t: {}, _weekly_data),
+    "series_detail": (lambda t: {"series_id": t.series.pk}, lambda t: {}),
+    "series_cancel": (lambda t: {"series_id": t.series.pk}, lambda t: {"reason": "other"}),
 }
 # Who may use each URL on their own venue:
 #   "all"       owner and staff can open it (GET)
@@ -144,6 +162,10 @@ ACCESS = {
     "block_remove": "all_post",
     "staff": "owner",
     "staff_remove": "owner",
+    "weekly": "all",
+    "weekly_new": "all",
+    "series_detail": "all",
+    "series_cancel": "all_post",
     "profile": "members",
     "hours": "members",
     "prices": "members",
@@ -211,6 +233,11 @@ def fingerprint(venue: Venue):
                 "updated_at",
             )
         ),
+        list(
+            RecurringSeries.objects.for_venue(venue)
+            .order_by("pk")
+            .values_list("pk", "status", "updated_at")
+        ),
     )
 
 
@@ -257,6 +284,17 @@ def _add_bookings(venue):
         reason="maintenance",
     )
     venue.membership = venue.memberships.get(user=venue.owner)
+    venue.series, _weeks = booking_services.create_staff_series(
+        venue=venue,
+        actor=venue.owner,
+        court_id=venue.court.pk,
+        first_date=_tomorrow() + timedelta(days=7),
+        start_minute=1200,
+        duration_minutes=60,
+        weeks=2,
+        customer_name="Regulars",
+        customer_phone="0715551234",
+    )
 
 
 @pytest.mark.parametrize("name", sorted(REGISTRY))
@@ -293,6 +331,8 @@ OBJECT_URLS = [
     "booking_arrived",
     "block_remove",
     "staff_remove",
+    "series_detail",
+    "series_cancel",
 ]
 
 

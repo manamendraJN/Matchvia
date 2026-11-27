@@ -23,6 +23,10 @@
     </div>
   {% endif %}
 
+  {% if booking.series_id %}
+    <a href="{% url 'manage:series_detail' venue.pk booking.series_id %}" class="block rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium">🔁 {% translate "Part of a weekly booking" %}</a>
+  {% endif %}
+
   <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 rounded-xl border border-slate-200 bg-white p-4 text-sm">
     <dt class="text-slate-500">{% translate "Price" %}</dt>
     <dd>{{ booking.price_lkr|lkr }}{% if booking.price_change_reason %} · {% translate "changed:" %} {{ booking.price_change_reason }}{% endif %}</dd>

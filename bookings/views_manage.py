@@ -17,7 +17,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from core.exceptions import NotAllowed, RuleViolation, SlotTaken
-from core.formatting import format_range, format_time
+from core.formatting import format_date, format_range, format_time
 from core.timeutils import at_operating_minute, operating_date, operating_minute
 from pricing import services as pricing
 from venues import services as venue_services
@@ -26,8 +26,24 @@ from venues.models import Court, MemberRole, VenueCustomer, VenueStatus
 
 from . import calendar as cal
 from . import services
-from .forms_manage import MAX_STAFF_SLOTS, BlockForm, MoveForm, NewBookingForm, StaffCancelForm
-from .models import ACTIVE_STATUSES, Booking, Kind, Source, Status
+from .forms_manage import (
+    MAX_STAFF_SLOTS,
+    BlockForm,
+    MoveForm,
+    NewBookingForm,
+    SeriesCancelForm,
+    StaffCancelForm,
+    WeeklyForm,
+)
+from .models import (
+    ACTIVE_STATUSES,
+    Booking,
+    Kind,
+    RecurringSeries,
+    SeriesStatus,
+    Source,
+    Status,
+)
 from .selectors import get_available_slots
 
 
@@ -432,3 +448,134 @@ def remove_block(request, venue, booking_id):
     else:
         messages.success(request, _("Block removed."))
     return redirect(_calendar_url(venue, block.operating_date))
+
+
+# ---------------------------------------------------------------- V16 weekly bookings (US-S08)
+
+
+def _short(day) -> str:
+    """'29 Dec' (without the weekday)."""
+    return format_date(day).split(" ", 1)[1]
+
+
+@members_only
+@require_GET
+def weekly(request, venue):
+    series_list = (
+        RecurringSeries.objects.for_venue(venue)
+        .filter(status__in=[SeriesStatus.APPROVED, SeriesStatus.PENDING])
+        .select_related("court", "venue_customer")
+        .order_by("status", "weekday", "start_minute")
+    )
+    rows = [
+        (s, format_time(at_operating_minute(s.first_date, s.start_minute))) for s in series_list
+    ]
+    return render(request, "bookings/manage/weekly.html", _context(venue, rows=rows))
+
+
+@members_only
+@require_http_methods(["GET", "POST"])
+def weekly_new(request, venue):
+    court = _court_param(venue, request.GET.get("court"))
+    start = None
+    if request.GET.get("start"):
+        try:
+            start = timezone.make_aware(datetime.strptime(request.GET["start"], "%Y-%m-%dT%H:%M"))
+        except ValueError:
+            start = None
+    form = WeeklyForm(
+        request.POST or None,
+        initial={
+            "court": court,
+            "first_date": operating_date(start) if start else operating_date(timezone.now()),
+            "start_minute": operating_minute(start) if start else 1200,
+            "slots": 1,
+        },
+        venue=venue,
+    )
+    plans = None
+    if request.method == "POST" and form.is_valid():
+        data = form.cleaned_data
+        duration = data["court"].slot_minutes * data["slots"]
+        try:
+            if "create" in request.POST:
+                series, created = services.create_staff_series(
+                    venue=venue,
+                    actor=request.user,
+                    court_id=data["court"].pk,
+                    first_date=data["first_date"],
+                    start_minute=data["start_minute"],
+                    duration_minutes=duration,
+                    weeks=data["weeks"],
+                    customer_name=data["customer_name"],
+                    customer_phone=data["customer_phone"],
+                )
+                text = _("%(n)d weeks booked.") % {"n": len(created)}
+                if series.skipped:
+                    days = ", ".join(_short(date.fromisoformat(s["date"])) for s in series.skipped)
+                    text += " " + _("%(n)d skipped (%(days)s).") % {
+                        "n": len(series.skipped),
+                        "days": days,
+                    }
+                messages.success(request, text)
+                return redirect("manage:series_detail", venue_id=venue.pk, series_id=series.pk)
+            plans = services.plan_weeks(
+                data["court"],
+                first_date=data["first_date"],
+                start_minute=data["start_minute"],
+                duration_minutes=duration,
+                weeks=data["weeks"],
+                for_staff=True,
+            )
+        except (RuleViolation, NotAllowed) as exc:
+            form.add_error(None, exc.message)
+    context = _context(
+        venue,
+        form=form,
+        plans=[(p, services.SKIP_LABELS.get(p.reason, "")) for p in plans] if plans else None,
+        free_weeks=sum(1 for p in plans if p.ok) if plans else 0,
+    )
+    return render(request, "bookings/manage/weekly_new.html", context)
+
+
+@members_only
+@require_GET
+def series_detail(request, venue, series_id):
+    series = get_object_or_404(
+        RecurringSeries.objects.for_venue(venue).select_related("court", "venue_customer"),
+        pk=series_id,
+    )
+    context = _context(
+        venue,
+        series=series,
+        bookings=series.bookings.order_by("start_at"),
+        skipped=[
+            (date.fromisoformat(s["date"]), services.SKIP_LABELS.get(s["reason"], s["reason"]))
+            for s in series.skipped
+        ],
+        time=format_time(at_operating_minute(series.first_date, series.start_minute)),
+        cancel_form=SeriesCancelForm(),
+    )
+    return render(request, "bookings/manage/series_detail.html", context)
+
+
+@members_only
+@require_POST
+def series_cancel(request, venue, series_id):
+    series = get_object_or_404(RecurringSeries.objects.for_venue(venue), pk=series_id)
+    form = SeriesCancelForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, _("Choose a reason for cancelling."))
+    else:
+        try:
+            cancelled, _kept = services.cancel_series_by_staff(
+                venue=venue,
+                actor=request.user,
+                series_id=series.pk,
+                reason=form.cleaned_data["reason"],
+            )
+        except RuleViolation as exc:
+            messages.error(request, exc.message)
+        else:
+            messages.success(request, _("%(n)d weeks cancelled.") % {"n": len(cancelled)})
+    return redirect("manage:series_detail", venue_id=venue.pk, series_id=series.pk)

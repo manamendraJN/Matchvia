@@ -1,0 +1,44 @@
+{% extends "venues/_layout.html" %}
+{% load i18n matchvia %}
+
+{% block staff_note %}{% endblock %}
+
+{% block venue_content %}
+  <form method="post" action="{% url 'manage:weekly_new' venue.pk %}" class="space-y-4" novalidate>
+    {% csrf_token %}
+    <h2 class="text-lg font-semibold">{% translate "Weekly booking for a regular team" %}</h2>
+    {% include "components/form_errors.html" %}
+    {% include "components/field.html" with field=form.customer_name %}
+    {% include "components/field.html" with field=form.customer_phone %}
+    <div class="grid grid-cols-2 gap-3">
+      {% include "components/field.html" with field=form.court %}
+      {% include "components/field.html" with field=form.first_date %}
+      {% include "components/field.html" with field=form.start_minute %}
+      {% include "components/field.html" with field=form.slots %}
+    </div>
+    {% include "components/field.html" with field=form.weeks %}
+
+    {% if plans %}
+      <section class="space-y-2 rounded-xl border border-slate-200 bg-white p-4">
+        <h3 class="font-semibold">{% blocktranslate with n=free_weeks total=plans|length %}{{ n }} of {{ total }} weeks are free{% endblocktranslate %}</h3>
+        <ul class="divide-y divide-slate-100 text-sm">
+          {% for plan, label in plans %}
+            <li class="flex justify-between py-2">
+              <span>{{ plan.day|day }} · {{ plan.start|time12 }}</span>
+              {% if plan.ok %}<span class="font-medium text-green-700">{% translate "Free" %}</span>{% else %}<span class="font-medium text-red-700">{% translate "Clash" %}: {{ label }}</span>{% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+        {% if free_weeks %}
+          <button type="submit" name="create" value="1" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white" data-disable-on-submit>
+            {% blocktranslate count n=free_weeks %}Create {{ n }} weekly booking{% plural %}Create {{ n }} weekly bookings{% endblocktranslate %}
+          </button>
+        {% else %}
+          <p class="text-sm font-medium text-red-700">{% translate "All weeks clash. Choose another time." %}</p>
+        {% endif %}
+      </section>
+    {% endif %}
+
+    <button type="submit" name="preview" value="1" class="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 font-semibold">{% translate "Check the weeks" %}</button>
+  </form>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "venues/_layout.html" %}
+{% load i18n matchvia %}
+
+{% block staff_note %}{% endblock %}
+
+{% block venue_content %}
+  <a href="{% url 'manage:weekly' venue.pk %}" class="text-sm text-slate-600 hover:underline">← {% translate "Weekly bookings" %}</a>
+  <div class="space-y-1">
+    <h2 class="text-xl font-bold">🔁 {{ series.venue_customer.name }}</h2>
+    <p class="text-slate-700">{{ series.first_date|date:"l" }} {{ time }} · {{ series.court.name }} · {% blocktranslate with n=series.weeks %}{{ n }} weeks{% endblocktranslate %}</p>
+    <p class="text-sm"><span class="rounded-full bg-slate-100 px-2 py-1 font-medium">{{ series.get_status_display }}</span> <span class="text-slate-600">{{ series.get_origin_display }}</span></p>
+    {% if series.decision_reason %}<p class="text-sm text-slate-600">{{ series.decision_reason }}</p>{% endif %}
+  </div>
+
+  <ul class="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white px-4 text-sm">
+    {% for b in bookings %}
+      <li class="flex justify-between py-2">
+        <a href="{% url 'manage:booking_detail' venue.pk b.pk %}" class="underline">{{ b.start_at|day }} · {{ b.start_at|time12 }}</a>
+        <span class="{% if b.status == 'cancelled' %}text-slate-500 line-through{% endif %}">{% if b.is_completed %}{% translate "Played" %}{% else %}{{ b.get_status_display }}{% endif %}</span>
+      </li>
+    {% endfor %}
+    {% for day, reason in skipped %}
+      <li class="flex justify-between py-2 text-slate-500"><span>{{ day|day }}</span><span>{% translate "Skipped" %}: {{ reason }}</span></li>
+    {% endfor %}
+  </ul>
+
+  {% if series.status == "approved" %}
+    <form method="post" action="{% url 'manage:series_cancel' venue.pk series.pk %}" class="space-y-3 rounded-xl border border-red-200 bg-white p-4">
+      {% csrf_token %}
+      <h3 class="font-semibold text-red-800">{% translate "Cancel all remaining weeks" %}</h3>
+      <div class="grid gap-2">
+        {% for radio in cancel_form.reason %}
+          <label class="flex min-h-12 cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-4 font-medium has-checked:border-red-700 has-checked:bg-red-50">{{ radio.tag }}{{ radio.choice_label }}</label>
+        {% endfor %}
+      </div>
+      <p class="text-sm text-slate-600">{% translate "To cancel just one week, open that week and cancel it." %}</p>
+      <button type="submit" class="w-full rounded-lg bg-red-700 px-4 py-3 font-semibold text-white" data-disable-on-submit>{% translate "Cancel remaining weeks" %}</button>
+    </form>
+  {% endif %}
+{% endblock %}

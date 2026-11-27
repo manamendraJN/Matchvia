@@ -56,6 +56,16 @@ urlpatterns = [
         name="block_remove",
     ),
     path("<int:venue_id>/customers/lookup/", booking_views.customer_lookup, name="customer_lookup"),
+    path("<int:venue_id>/weekly/", booking_views.weekly, name="weekly"),
+    path("<int:venue_id>/weekly/new/", booking_views.weekly_new, name="weekly_new"),
+    path(
+        "<int:venue_id>/weekly/<int:series_id>/", booking_views.series_detail, name="series_detail"
+    ),
+    path(
+        "<int:venue_id>/weekly/<int:series_id>/cancel/",
+        booking_views.series_cancel,
+        name="series_cancel",
+    ),
     # Venue setup (owner edits, staff view)
     path("<int:venue_id>/profile/", views.profile, name="profile"),
     path("<int:venue_id>/photos/add/", views.photo_add, name="photo_add"),
