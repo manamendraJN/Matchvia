@@ -1,0 +1,1 @@
+{% load i18n %}{% autoescape off %}{# SMS text: plain characters only, aim for one 160-character SMS. #}{% blocktranslate trimmed %}Matchvia: {{ team }} asks for a weekly slot at {{ venue }}: {{ weekday }} {{ time }}, {{ weeks }} weeks. Open your dashboard to approve.{% endblocktranslate %}{% endautoescape %}

@@ -3,8 +3,9 @@
 Runs in its own process next to the web server. In development, start it in a second terminal
 to see SMS (including sign-in codes) printed by the console backend.
 
-Jobs: send due SMS every 5 seconds, write a heartbeat for /healthz, and once a day remove
-personal data that is no longer needed (OTP rows after 24 h, SMS phone numbers after 90 days).
+Jobs: send due SMS every 5 seconds, expire weekly-slot requests after 48 h and team invites
+after 7 days, write a heartbeat for /healthz, and once a day remove personal data that is no
+longer needed (OTP rows after 24 h, SMS phone numbers after 90 days).
 """
 
 import logging
@@ -15,10 +16,12 @@ from django.core.management.base import BaseCommand
 from django.db import close_old_connections
 
 from accounts import services as accounts
+from bookings import services as bookings
 from core import heartbeat
 from notifications import services as notifications
 from notifications.services import get_backend
 from notifications.worker import send_due_messages
+from teams import services as teams
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +52,13 @@ class Command(BaseCommand):
         try:
             while True:
                 close_old_connections()
-                for job in (lambda: send_due_messages(backend=backend), purge_personal_data):
+                jobs = (
+                    lambda: send_due_messages(backend=backend),
+                    bookings.expire_series_requests,
+                    teams.expire_old_invites,
+                    purge_personal_data,
+                )
+                for job in jobs:
                     try:
                         job()
                     except Exception:  # one failing job must not stop the others (architecture 4.2)

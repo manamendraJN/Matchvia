@@ -464,8 +464,8 @@ def weekly(request, venue):
     series_list = (
         RecurringSeries.objects.for_venue(venue)
         .filter(status__in=[SeriesStatus.APPROVED, SeriesStatus.PENDING])
-        .select_related("court", "venue_customer")
-        .order_by("status", "weekday", "start_minute")
+        .select_related("court", "venue_customer", "team")
+        .order_by("-status", "weekday", "start_minute")
     )
     rows = [
         (s, format_time(at_operating_minute(s.first_date, s.start_minute))) for s in series_list
@@ -555,7 +555,21 @@ def series_detail(request, venue, series_id):
         ],
         time=format_time(at_operating_minute(series.first_date, series.start_minute)),
         cancel_form=SeriesCancelForm(),
+        can_decide=services.can_decide(venue, request.user),
     )
+    if series.status == SeriesStatus.PENDING:
+        plans = services.plan_weeks(
+            series.court,
+            first_date=series.first_date,
+            start_minute=series.start_minute,
+            duration_minutes=series.duration_minutes,
+            weeks=series.weeks,
+            for_staff=False,
+        )
+        context["plans"] = [(p, services.SKIP_LABELS.get(p.reason, "")) for p in plans]
+        context["free_weeks"] = sum(1 for p in plans if p.ok)
+        context["skip_weeks"] = len(plans) - context["free_weeks"]
+        context["history"] = cal.customer_stats(series.venue_customer)
     return render(request, "bookings/manage/series_detail.html", context)
 
 
@@ -578,4 +592,43 @@ def series_cancel(request, venue, series_id):
             messages.error(request, exc.message)
         else:
             messages.success(request, _("%(n)d weeks cancelled.") % {"n": len(cancelled)})
+    return redirect("manage:series_detail", venue_id=venue.pk, series_id=series.pk)
+
+
+# ---------------------------------------------------------------- V17 captain requests (US-O07)
+
+
+@members_only
+@require_POST
+def series_approve(request, venue, series_id):
+    series = get_object_or_404(RecurringSeries.objects.for_venue(venue), pk=series_id)
+    try:
+        approved, created = services.approve_series(
+            venue=venue, actor=request.user, series_id=series.pk
+        )
+    except (RuleViolation, NotAllowed) as exc:
+        messages.error(request, exc.message)
+    else:
+        text = _("Approved: %(n)d weeks booked.") % {"n": len(created)}
+        if approved.skipped:
+            text += " " + _("%(n)d skipped.") % {"n": len(approved.skipped)}
+        messages.success(request, text)
+    return redirect("manage:series_detail", venue_id=venue.pk, series_id=series.pk)
+
+
+@members_only
+@require_POST
+def series_reject(request, venue, series_id):
+    series = get_object_or_404(RecurringSeries.objects.for_venue(venue), pk=series_id)
+    try:
+        services.reject_series(
+            venue=venue,
+            actor=request.user,
+            series_id=series.pk,
+            reason=request.POST.get("reason", ""),
+        )
+    except (RuleViolation, NotAllowed) as exc:
+        messages.error(request, exc.message)
+    else:
+        messages.success(request, _("Request rejected. The captain gets an SMS."))
     return redirect("manage:series_detail", venue_id=venue.pk, series_id=series.pk)

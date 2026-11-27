@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load i18n matchvia %}
+
+{% block title %}{% translate "Weekly slot" %} · Matchvia{% endblock %}
+
+{% block content %}
+  <section class="space-y-5">
+    <a href="{% url 'my_bookings' %}" class="text-sm text-slate-600 hover:underline">← {% translate "My bookings" %}</a>
+    <div class="space-y-1">
+      <h1 class="text-2xl font-bold tracking-tight">🔁 {{ rule }}</h1>
+      <p class="text-slate-600">{{ series.venue.name }} · {{ series.court.name }}{% if series.team %} · {{ series.team.name }}{% endif %}</p>
+    </div>
+
+    <p class="rounded-lg px-4 py-3 font-medium {% if series.status == 'approved' %}bg-green-50 text-green-800{% elif series.status == 'pending' %}bg-amber-50 text-amber-900{% else %}bg-slate-100 text-slate-800{% endif %}">
+      {{ series.get_status_display }}{% if series.decision_reason %}: {{ series.decision_reason }}{% endif %}
+    </p>
+    {% if series.status == "expired" %}
+      <p class="text-sm text-slate-600">{% translate "The venue didn't reply in time. You can send the request again from the venue page." %}</p>
+    {% endif %}
+
+    {% if bookings or skipped %}
+      <ul class="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white px-4 text-sm">
+        {% for b, can_cancel in bookings %}
+          <li class="flex items-center justify-between py-3">
+            <span class="{% if b.status == 'cancelled' %}text-slate-400 line-through{% endif %}">{{ b.start_at|day }}</span>
+            {% if can_cancel %}
+              <a href="{% url 'booking_cancel' b.display_reference %}" class="font-medium text-red-700 hover:underline">{% translate "Cancel this week" %}</a>
+            {% else %}
+              <span class="text-slate-600">{% if b.is_completed %}{% translate "Played" %}{% else %}{{ b.get_status_display }}{% endif %}</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+        {% for day, reason in skipped %}
+          <li class="flex justify-between py-3 text-slate-500"><span>{{ day|day }}</span><span>{% translate "Skipped" %}: {{ reason }}</span></li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% if series.status == "approved" %}
+      <form method="post" action="{% url 'my_weekly_cancel' series.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="w-full rounded-lg border border-red-300 bg-white px-4 py-3 font-semibold text-red-700" data-disable-on-submit>{% translate "Cancel all remaining weeks" %}</button>
+        <p class="mt-1 text-center text-xs text-slate-500">{% translate "Weeks that are too close to cancel online stay booked; call the venue for those." %}</p>
+      </form>
+    {% endif %}
+  </section>
+{% endblock %}

@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 
 from django import forms
+from django.core.validators import MaxValueValidator
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -84,6 +85,7 @@ class BookingForm(forms.Form):
     court = forms.IntegerField(min_value=1, widget=forms.HiddenInput)
     start = forms.DateTimeField(input_formats=["%Y-%m-%dT%H:%M"], widget=forms.HiddenInput)
     slots = forms.IntegerField(min_value=1, max_value=6, required=False, initial=1)
+    team = forms.IntegerField(required=False, widget=forms.HiddenInput)
 
     def clean_start(self):
         value = self.cleaned_data["start"]
@@ -93,3 +95,27 @@ class BookingForm(forms.Form):
 
     def clean_slots(self):
         return self.cleaned_data.get("slots") or 1
+
+
+class WeeklyRequestForm(forms.Form):
+    """P12: a captain asks for the same court every week (US-C04)."""
+
+    team = forms.ModelChoiceField(
+        label=_("Team"), queryset=None, widget=forms.Select(attrs={"class": SELECT_CLASS})
+    )
+    weeks = forms.IntegerField(
+        label=_("Number of weeks"),
+        min_value=2,
+        widget=forms.NumberInput(attrs={"class": SELECT_CLASS, "inputmode": "numeric"}),
+    )
+
+    def __init__(self, *args, teams, venue, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["team"].queryset = teams
+        limit = venue.settings.recurring_max_weeks
+        self.fields["weeks"].max_value = limit
+        self.fields["weeks"].validators.append(MaxValueValidator(limit))
+        self.fields["weeks"].initial = venue.settings.recurring_default_weeks
+        self.fields["weeks"].error_messages["max_value"] = _(
+            "This venue allows up to %(limit_value)s weeks."
+        )

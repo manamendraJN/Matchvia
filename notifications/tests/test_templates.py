@@ -23,6 +23,11 @@ TYPICAL = {
     "booked": 12,
     "first": "12 Dec",
     "skipped": "22 Dec, 29 Dec, 5 Jan +2",
+    "captain": "Kasun Perera",
+    "team": "Malabe Strikers",
+    "sport": "Indoor cricket",
+    "link": "https://matchvia.lk/t/Ab3dEf6hIj9kLm2nOp5qRw/",
+    "weeks": 12,
 }
 
 
@@ -41,6 +46,10 @@ def test_every_template_is_tested():
         "venue_unsuspended",
         "series_summary",
         "series_cancelled",
+        "series_request",
+        "series_rejected",
+        "series_expired",
+        "team_invite",
     }
 
 

@@ -25,6 +25,7 @@ from core.phone import INVALID_PHONE_MESSAGE, InvalidPhone, format_local, normal
 from core.timeutils import at_operating_minute, operating_date, operating_minute
 from notifications import services as notifications
 from pricing import services as pricing
+from teams import services as teams
 from venues import services as venue_services
 from venues.models import Court, MemberRole, OpeningHours, VenueCustomer, VenueStatus
 
@@ -196,7 +197,13 @@ def _price_override(venue, role, calculated, price_lkr, reason) -> tuple[int, st
 
 
 def create_online_booking(
-    *, user, court_id, start_at: datetime, slots: int = 1, now: datetime | None = None
+    *,
+    user,
+    court_id,
+    start_at: datetime,
+    slots: int = 1,
+    team_id=None,
+    now: datetime | None = None,
 ) -> Booking:
     """A player books ``slots`` consecutive slots, confirmed at once (BR-07: no hold in MVP).
 
@@ -218,6 +225,8 @@ def create_online_booking(
             _("You can book up to %(n)d slots in a row online.")
             % {"n": settings.max_slots_per_booking}
         )
+    # Only the captain can tag a booking with a team (US-C03).
+    team = teams.captained_teams(user).get(pk=team_id) if team_id else None
 
     length = timedelta(minutes=court.slot_minutes)
     end_at = start_at + slots * length
@@ -277,6 +286,7 @@ def create_online_booking(
             venue_customer=customer,
             customer_name=customer.name,
             price_lkr=pricing.price_for(court, start_at, end_at),
+            team=team,
             created_by=user,
         )
         _save_checked(booking, insert=True)
@@ -814,6 +824,7 @@ def _expand(series: RecurringSeries, *, actor, source: str, now: datetime, for_s
             customer_name=customer.name,
             price_lkr=pricing.price_for(court, plan.start, plan.end),
             series=series,
+            team=series.team,
             created_by=actor,
         )
         try:
@@ -989,3 +1000,185 @@ def cancel_series_by_player(*, user, series_id, now: datetime | None = None):
         return _cancel_series_bookings(
             series, actor=user, reason=CancelReason.CUSTOMER_REQUEST, now=now, window=window
         )
+
+
+# ---------------------------------------------------------------- captain requests (US-C04, US-O07)
+
+REQUEST_LIFETIME = timedelta(hours=48)  # BR-13
+
+
+def _rule_text(series) -> dict:
+    start = at_operating_minute(series.first_date, series.start_minute)
+    return {"weekday": dateformat.format(series.first_date, "D"), "time": format_time(start)}
+
+
+def request_series(
+    *,
+    user,
+    team_id,
+    court_id,
+    first_date: date,
+    start_minute: int,
+    duration_minutes: int,
+    weeks: int,
+    now: datetime | None = None,
+) -> RecurringSeries:
+    """A captain asks for the same court every week. Reserves nothing until approved (US-C04).
+
+    If the first week is inside the minimum notice, the series starts the following week.
+    """
+    now = _now(now)
+    team = teams.captained_teams(user).get(pk=team_id)
+    court = Court.objects.select_related("venue", "venue__settings").get(
+        pk=court_id, is_active=True
+    )
+    venue = court.venue
+    if venue.status != VenueStatus.APPROVED:
+        raise RuleViolation(_("This venue is not taking online bookings."))
+    _check_weeks(venue, weeks)
+    plans = plan_weeks(
+        court,
+        first_date=first_date,
+        start_minute=start_minute,
+        duration_minutes=duration_minutes,
+        weeks=weeks,
+        for_staff=False,
+        now=now,
+    )
+    if plans[0].reason == "too_soon":
+        first_date += timedelta(weeks=1)
+    with transaction.atomic():
+        customer = _customer_for(venue, phone=user.phone, name=user.name, user=user)
+        if customer.is_blocked_online:
+            raise NotAllowed(
+                _("Please contact the venue to book: %(phone)s")
+                % {"phone": format_local(venue.phone)}
+            )
+        series = RecurringSeries.objects.create(
+            venue=venue,
+            court=court,
+            origin=SeriesOrigin.CAPTAIN_REQUEST,
+            status=SeriesStatus.PENDING,
+            requested_by=user,
+            team=team,
+            venue_customer=customer,
+            weekday=first_date.weekday(),
+            start_minute=start_minute,
+            duration_minutes=duration_minutes,
+            first_date=first_date,
+            weeks=weeks,
+            request_expires_at=now + REQUEST_LIFETIME,
+        )
+        text = notifications.render_sms(
+            "series_request", team=team.name, venue=venue.name, weeks=weeks, **_rule_text(series)
+        )
+        for phone in venue_services.approver_phones(venue):
+            notifications.queue_sms(to_phone=phone, purpose="venue_notice", body=text, venue=venue)
+    logger.info("series.requested id=%s venue=%s", series.pk, venue.pk)
+    return series
+
+
+def can_decide(venue, actor) -> bool:
+    """BR-13: who may approve requests is a venue setting (owner only, or owner and staff)."""
+    role = venue_services.member_role(venue, actor)
+    if role == MemberRole.OWNER:
+        return True
+    return role == MemberRole.STAFF and venue.settings.recurring_approver == "owner_or_staff"
+
+
+def _pending_request(venue, actor, series_id, now) -> RecurringSeries:
+    if not can_decide(venue, actor):
+        raise NotAllowed(_("Only the owner can approve or reject requests."))
+    series = (
+        RecurringSeries.objects.for_venue(venue)
+        .select_for_update(of=("self",))
+        .select_related("court", "venue_customer", "team")
+        .get(pk=series_id)
+    )
+    if series.origin != SeriesOrigin.CAPTAIN_REQUEST:
+        raise RuleViolation(_("This weekly booking isn't a request."))
+    if series.status == SeriesStatus.PENDING and series.request_expires_at <= now:
+        _expire(series)
+    if series.status == SeriesStatus.EXPIRED:
+        raise RuleViolation(_("This request has expired."))
+    if series.status != SeriesStatus.PENDING:
+        raise RuleViolation(_("This request has already been answered."))
+    return series
+
+
+def approve_series(*, venue, actor, series_id, now: datetime | None = None):
+    """Approve: create the weeks that are free, skip and report the rest (US-O07, US-C04)."""
+    now = _now(now)
+    with transaction.atomic():
+        series = _pending_request(venue, actor, series_id, now)
+        created = _expand(series, actor=actor, source=Source.ONLINE, now=now, for_staff=False)
+        if not created:
+            raise RuleViolation(_("All weeks clash. Reject the request or ask for another time."))
+        series.status = SeriesStatus.APPROVED
+        series.decided_by = actor
+        series.decided_at = now
+        series.save(update_fields=["status", "decided_by", "decided_at", "updated_at"])
+        series_summary_sms(series, len(created))
+    logger.info("series.approved id=%s weeks=%s", series.pk, len(created))
+    return series, created
+
+
+def reject_series(*, venue, actor, series_id, reason: str = "", now: datetime | None = None):
+    now = _now(now)
+    reason = " ".join((reason or "").split())[:255]
+    with transaction.atomic():
+        series = _pending_request(venue, actor, series_id, now)
+        series.status = SeriesStatus.REJECTED
+        series.decided_by = actor
+        series.decided_at = now
+        series.decision_reason = reason
+        series.save()
+        if series.venue_customer.phone:
+            notifications.queue_sms(
+                to_phone=series.venue_customer.phone,
+                purpose="series_decision",
+                body=notifications.render_sms(
+                    "series_rejected", venue=venue.name, reason=reason, **_rule_text(series)
+                ),
+                venue=venue,
+            )
+    return series
+
+
+def _expire(series: RecurringSeries) -> None:
+    series.status = SeriesStatus.EXPIRED
+    series.save(update_fields=["status", "updated_at"])
+    if series.venue_customer.phone:
+        notifications.queue_sms(
+            to_phone=series.venue_customer.phone,
+            purpose="series_decision",
+            body=notifications.render_sms(
+                "series_expired", venue=series.venue.name, **_rule_text(series)
+            ),
+            venue=series.venue,
+        )
+
+
+def expire_series_requests(*, now: datetime | None = None) -> int:
+    """Worker job: requests unanswered for 48 hours expire and the captain is told (BR-13)."""
+    now = _now(now)
+    count = 0
+    with transaction.atomic():
+        stale = (
+            RecurringSeries.objects.select_for_update(skip_locked=True, of=("self",))
+            .select_related("venue", "venue_customer")
+            .filter(status=SeriesStatus.PENDING, request_expires_at__lte=now)
+        )
+        for series in stale:
+            _expire(series)
+            count += 1
+    return count
+
+
+def series_for_player(user):
+    """Weekly slots the player asked for or that staff set up with their number (P9, P13)."""
+    return (
+        RecurringSeries.objects.filter(venue_customer__user=user)
+        .select_related("venue", "court", "team")
+        .order_by("-created_at")
+    )

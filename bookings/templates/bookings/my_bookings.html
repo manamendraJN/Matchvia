@@ -7,6 +7,17 @@
   <section class="space-y-5">
     <h1 class="text-2xl font-bold tracking-tight">{% translate "My bookings" %}</h1>
 
+    {% if series_list %}
+      <div class="space-y-2">
+        <h2 class="font-semibold">{% translate "Weekly slots" %}</h2>
+        {% for s in series_list %}
+          <a href="{% url 'my_weekly' s.pk %}" class="block rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm hover:bg-slate-50">
+            🔁 {{ s.first_date|date:"l" }} · {{ s.venue.name }} · <span class="font-medium">{{ s.get_status_display }}</span>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+
     <nav class="grid grid-cols-2 rounded-lg bg-slate-100 p-1 text-center text-sm font-semibold">
       <a href="{% url 'my_bookings' %}" class="rounded-md py-2 {% if tab == 'upcoming' %}bg-white shadow{% else %}text-slate-600{% endif %}">{% translate "Upcoming" %}</a>
       <a href="{% url 'my_bookings' %}?tab=past" class="rounded-md py-2 {% if tab == 'past' %}bg-white shadow{% else %}text-slate-600{% endif %}">{% translate "Past" %}</a>
@@ -23,7 +34,7 @@
                   {% if booking.is_completed %}{% translate "Played" %}{% else %}{{ booking.get_status_display }}{% endif %}
                 </span>
               </span>
-              <span class="block text-sm text-slate-600">{{ booking.venue.name }} · {{ booking.court.name }}</span>
+              <span class="block text-sm text-slate-600">{% if booking.series_id %}🔁 {% endif %}{{ booking.venue.name }} · {{ booking.court.name }}{% if booking.team %} · {{ booking.team.name }}{% endif %}</span>
               {% if booking.source != "online" %}<span class="block text-xs text-slate-500">{% blocktranslate with source=booking.get_source_display %}Booked by {{ source }}{% endblocktranslate %}</span>{% endif %}
             </a>
           </li>

@@ -140,6 +140,8 @@ REGISTRY = {
     "weekly_new": (lambda t: {}, _weekly_data),
     "series_detail": (lambda t: {"series_id": t.series.pk}, lambda t: {}),
     "series_cancel": (lambda t: {"series_id": t.series.pk}, lambda t: {"reason": "other"}),
+    "series_approve": (lambda t: {"series_id": t.series.pk}, lambda t: {}),
+    "series_reject": (lambda t: {"series_id": t.series.pk}, lambda t: {"reason": "No"}),
 }
 # Who may use each URL on their own venue:
 #   "all"       owner and staff can open it (GET)
@@ -166,6 +168,8 @@ ACCESS = {
     "weekly_new": "all",
     "series_detail": "all",
     "series_cancel": "all_post",
+    "series_approve": "all_post",
+    "series_reject": "all_post",
     "profile": "members",
     "hours": "members",
     "prices": "members",
@@ -333,6 +337,8 @@ OBJECT_URLS = [
     "staff_remove",
     "series_detail",
     "series_cancel",
+    "series_approve",
+    "series_reject",
 ]
 
 

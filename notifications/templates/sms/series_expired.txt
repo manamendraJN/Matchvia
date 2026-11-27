@@ -1,0 +1,1 @@
+{% load i18n %}{% autoescape off %}{# SMS text: plain characters only, aim for one 160-character SMS. #}{% blocktranslate trimmed %}Matchvia: {{ venue }} didn't reply to your weekly slot request ({{ weekday }} {{ time }}). You can send it again.{% endblocktranslate %}{% endautoescape %}

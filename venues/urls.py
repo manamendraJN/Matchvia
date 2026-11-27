@@ -66,6 +66,16 @@ urlpatterns = [
         booking_views.series_cancel,
         name="series_cancel",
     ),
+    path(
+        "<int:venue_id>/weekly/<int:series_id>/approve/",
+        booking_views.series_approve,
+        name="series_approve",
+    ),
+    path(
+        "<int:venue_id>/weekly/<int:series_id>/reject/",
+        booking_views.series_reject,
+        name="series_reject",
+    ),
     # Venue setup (owner edits, staff view)
     path("<int:venue_id>/profile/", views.profile, name="profile"),
     path("<int:venue_id>/photos/add/", views.photo_add, name="photo_add"),

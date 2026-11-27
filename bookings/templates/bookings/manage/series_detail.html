@@ -12,6 +12,36 @@
     {% if series.decision_reason %}<p class="text-sm text-slate-600">{{ series.decision_reason }}</p>{% endif %}
   </div>
 
+  {% if series.status == "pending" %}
+    <div class="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+      <p class="font-semibold">{% translate "Weekly slot request" %}{% if series.team %}: {{ series.team.name }}{% endif %}</p>
+      <p class="text-sm">{{ series.venue_customer.name }} · <a href="tel:{{ series.venue_customer.phone }}" class="underline">{{ series.venue_customer.phone|local_phone }}</a></p>
+      {% if history %}<p class="text-sm">{% blocktranslate count n=history.bookings %}{{ n }} booking here{% plural %}{{ n }} bookings here{% endblocktranslate %} · {% blocktranslate count n=history.no_shows %}{{ n }} no-show{% plural %}{{ n }} no-shows{% endblocktranslate %}</p>{% endif %}
+      <p class="text-sm">{% blocktranslate with t=series.request_expires_at|timeuntil %}Expires in {{ t }}{% endblocktranslate %}</p>
+      <ul class="divide-y divide-amber-100 rounded-lg bg-white px-3 text-sm">
+        {% for plan, label in plans %}
+          <li class="flex justify-between py-2"><span>{{ plan.day|day }}</span>{% if plan.ok %}<span class="text-green-700">{% translate "Free" %}</span>{% else %}<span class="text-red-700">{% translate "Clash" %}: {{ label }}</span>{% endif %}</li>
+        {% endfor %}
+      </ul>
+      {% if can_decide %}
+        <form method="post" action="{% url 'manage:series_approve' venue.pk series.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 font-semibold text-white" data-disable-on-submit>
+            {% blocktranslate with n=free_weeks s=skip_weeks %}Approve: {{ n }} weeks will be booked, {{ s }} skipped{% endblocktranslate %}
+          </button>
+        </form>
+        <form method="post" action="{% url 'manage:series_reject' venue.pk series.pk %}" class="space-y-2">
+          {% csrf_token %}
+          <label for="reject-reason" class="block text-sm font-medium">{% translate "Reason (optional, sent to the captain)" %}</label>
+          <input id="reject-reason" name="reason" maxlength="255" class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-3">
+          <button type="submit" class="w-full rounded-lg border border-red-300 bg-white px-4 py-3 font-semibold text-red-700">{% translate "Reject" %}</button>
+        </form>
+      {% else %}
+        <p class="text-sm font-medium">{% translate "Only the owner can approve requests." %}</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
   <ul class="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white px-4 text-sm">
     {% for b in bookings %}
       <li class="flex justify-between py-2">

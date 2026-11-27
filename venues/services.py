@@ -79,6 +79,18 @@ def member_role(venue: Venue, user) -> str | None:
     ).first()
 
 
+def approver_phones(venue: Venue) -> list[str]:
+    """Numbers to tell about a new weekly request: owners, plus staff if they may approve."""
+    roles = [MemberRole.OWNER]
+    if venue.settings.recurring_approver == "owner_or_staff":
+        roles.append(MemberRole.STAFF)
+    return list(
+        VenueMembership.objects.for_venue(venue)
+        .filter(role__in=roles, user__is_active=True, user__phone__isnull=False)
+        .values_list("user__phone", flat=True)
+    )
+
+
 def memberships_for_user(user):
     """The venues a user works at, for the venue switcher (V7)."""
     return (

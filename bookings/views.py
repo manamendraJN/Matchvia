@@ -11,7 +11,7 @@ from django.contrib import messages
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import dateformat, timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
@@ -20,13 +20,15 @@ from accounts.decorators import profile_required
 from core import ratelimit
 from core.exceptions import NotAllowed, RateLimited, RuleViolation, SlotTaken
 from core.formatting import format_date, format_range, format_time
-from core.timeutils import local, operating_date
+from core.timeutils import at_operating_minute, local, operating_date, operating_minute
 from pricing import services as pricing
+from teams import services as teams
+from teams.models import Team
 from venues.models import Court, Facility, Venue
 
 from . import selectors, services
-from .forms import BookingForm, SearchForm, day_choices
-from .models import Booking, Kind, Status
+from .forms import BookingForm, SearchForm, WeeklyRequestForm, day_choices
+from .models import Booking, Kind, RecurringSeries, Status
 from .reference import normalise_reference
 
 BOOKINGS_PER_HOUR = 10  # BR-27
@@ -198,6 +200,17 @@ def review(request):
             }
         ),
         "back_url": _venue_url(venue, operating_date(start)),
+        "teams": teams.captained_teams(request.user),
+        "weekly_url": (
+            f"{reverse('book_weekly')}?"
+            + urlencode(
+                {
+                    "court": court.pk,
+                    "start": local(start).strftime("%Y-%m-%dT%H:%M"),
+                    "slots": slots,
+                }
+            )
+        ),
     }
     return render(request, "bookings/review.html", context)
 
@@ -211,7 +224,11 @@ def confirm(request):
     try:
         _hit_booking_limit(request)
         booking = services.create_online_booking(
-            user=request.user, court_id=court.pk, start_at=start, slots=slots
+            user=request.user,
+            court_id=court.pk,
+            start_at=start,
+            slots=slots,
+            team_id=form.cleaned_data.get("team") or None,
         )
     except SlotTaken:
         mine = Booking.objects.filter(
@@ -235,7 +252,7 @@ def confirm(request):
     except (RuleViolation, NotAllowed) as exc:
         messages.error(request, exc.message)
         return redirect(_venue_url(court.venue, operating_date(start)))
-    except Court.DoesNotExist:
+    except (Court.DoesNotExist, Team.DoesNotExist):
         raise Http404 from None
     return redirect("book_done", reference=booking.display_reference)
 
@@ -292,6 +309,9 @@ def my_bookings(request):
             "tab": tab,
             "bookings": past if tab == "past" else upcoming,
             "upcoming_count": len(upcoming),
+            "series_list": services.series_for_player(request.user).filter(
+                status__in=["pending", "approved"]
+            ),
         },
     )
 
@@ -340,3 +360,115 @@ def booking_cancel(request, reference):
         return redirect(detail_url)
     messages.success(request, _("Booking cancelled. We've sent an SMS."))
     return redirect("my_bookings")
+
+
+# ---------------------------------------------------------------- P12, P13 weekly slots
+
+
+def _rule(series) -> str:
+    start = at_operating_minute(series.first_date, series.start_minute)
+    end = start + timedelta(minutes=series.duration_minutes)
+    return f"{dateformat.format(series.first_date, 'l')}, {format_time(start)}–{format_time(end)}"
+
+
+@never_cache
+@profile_required
+@require_http_methods(["GET", "POST"])
+def weekly_request(request):
+    """P12: same court, same time, every week. Captains only (a team feature)."""
+    court, form = _parse_booking(request.GET)
+    venue = court.venue
+    start = form.cleaned_data["start"]
+    captained = teams.captained_teams(request.user)
+    if not captained.exists():
+        messages.info(request, _("Create a team first: weekly slots are for teams."))
+        return redirect("team_create")
+    duration = court.slot_minutes * form.cleaned_data["slots"]
+    request_form = WeeklyRequestForm(request.POST or None, teams=captained, venue=venue)
+    weeks = venue.settings.recurring_default_weeks
+    if request_form.is_bound and request_form.is_valid():
+        weeks = request_form.cleaned_data["weeks"]
+    plans = []
+    try:
+        plans = services.plan_weeks(
+            court,
+            first_date=operating_date(start),
+            start_minute=operating_minute(start),
+            duration_minutes=duration,
+            weeks=weeks,
+            for_staff=False,
+        )
+    except RuleViolation as exc:
+        request_form.add_error(None, exc.message)
+    if request.method == "POST" and request_form.is_valid() and "send" in request.POST:
+        try:
+            series = services.request_series(
+                user=request.user,
+                team_id=request_form.cleaned_data["team"].pk,
+                court_id=court.pk,
+                first_date=operating_date(start),
+                start_minute=operating_minute(start),
+                duration_minutes=duration,
+                weeks=weeks,
+            )
+        except (RuleViolation, NotAllowed) as exc:
+            request_form.add_error(None, exc.message)
+        else:
+            messages.success(request, _("Request sent. The venue will reply within 48 hours."))
+            return redirect("my_weekly", series_id=series.pk)
+    context = {
+        "venue": venue,
+        "court": court,
+        "form": request_form,
+        "plans": [(p, services.SKIP_LABELS.get(p.reason, "")) for p in plans],
+        "rule": (
+            f"{dateformat.format(local(start), 'l')}, "
+            f"{format_time(start)}–{format_time(start + timedelta(minutes=duration))}"
+        ),
+    }
+    return render(request, "bookings/weekly_request.html", context)
+
+
+@never_cache
+@profile_required
+@require_GET
+def my_weekly(request, series_id):
+    """P13: status of a request or series, its weeks, and cancelling."""
+    try:
+        series = services.series_for_player(request.user).get(pk=series_id)
+    except RecurringSeries.DoesNotExist:
+        raise Http404 from None
+    now = timezone.now()
+    bookings = list(series.bookings.order_by("start_at"))
+    context = {
+        "series": series,
+        "rule": _rule(series),
+        "bookings": [
+            (b, services.player_can_cancel(b, now) and b.start_at > now) for b in bookings
+        ],
+        "skipped": [
+            (date.fromisoformat(s["date"]), services.SKIP_LABELS.get(s["reason"], s["reason"]))
+            for s in series.skipped
+        ],
+    }
+    return render(request, "bookings/my_weekly.html", context)
+
+
+@never_cache
+@profile_required
+@require_POST
+def my_weekly_cancel(request, series_id):
+    try:
+        cancelled, kept = services.cancel_series_by_player(user=request.user, series_id=series_id)
+    except RecurringSeries.DoesNotExist:
+        raise Http404 from None
+    except RuleViolation as exc:
+        messages.error(request, exc.message)
+        return redirect("my_weekly", series_id=series_id)
+    text = _("%(n)d weeks cancelled.") % {"n": len(cancelled)}
+    if kept:
+        text += " " + _("%(n)d week is too close to cancel online. Call the venue for it.") % {
+            "n": len(kept)
+        }
+    messages.success(request, text)
+    return redirect("my_weekly", series_id=series_id)

@@ -92,6 +92,10 @@ class Booking(models.Model):
         blank=True,
         related_name="bookings",
     )
+    # Tagged by a captain so team members see it (US-C03).
+    team = models.ForeignKey(
+        "teams.Team", on_delete=models.SET_NULL, null=True, blank=True, related_name="bookings"
+    )
     # The weekly series this booking is one week of (data-model 5). Each week is a normal booking.
     series = models.ForeignKey(
         "RecurringSeries",
@@ -257,6 +261,9 @@ class RecurringSeries(models.Model):
     status = models.CharField(max_length=10, choices=SeriesStatus.choices)
     requested_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    team = models.ForeignKey(
+        "teams.Team", on_delete=models.SET_NULL, null=True, blank=True, related_name="weekly_series"
     )
     # Who the bookings are for.
     venue_customer = models.ForeignKey(

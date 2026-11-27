@@ -9,6 +9,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
+from django.db.models import Q
 from django.utils import timezone
 
 from core.timeutils import (
@@ -290,9 +291,22 @@ def search(
 def player_bookings(user, *, now: datetime | None = None):
     """(upcoming, past) bookings for 'My bookings' (US-P05), staff-entered ones included."""
     now = now or timezone.now()
-    base = Booking.objects.filter(kind=Kind.BOOKING, venue_customer__user=user).select_related(
-        "venue", "court"
+    mine = Q(venue_customer__user=user) | Q(team__memberships__user=user, team__is_active=True)
+    base = (
+        Booking.objects.filter(mine, kind=Kind.BOOKING)
+        .select_related("venue", "court", "team")
+        .distinct()
     )
     upcoming = list(base.filter(status=Status.CONFIRMED, end_at__gt=now).order_by("start_at"))
     past = list(base.exclude(pk__in=[b.pk for b in upcoming]).order_by("-start_at")[:50])
     return upcoming, past
+
+
+def team_bookings(team, *, now: datetime | None = None):
+    """Upcoming bookings tagged with a team (P16, US-C03)."""
+    now = now or timezone.now()
+    return list(
+        Booking.objects.filter(team=team, status=Status.CONFIRMED, end_at__gt=now)
+        .select_related("venue", "court")
+        .order_by("start_at")[:20]
+    )

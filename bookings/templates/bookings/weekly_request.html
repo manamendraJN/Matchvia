@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load i18n matchvia %}
+
+{% block title %}{% translate "Request a weekly slot" %} · Matchvia{% endblock %}
+
+{% block content %}
+  <form method="post" class="space-y-5" novalidate>
+    {% csrf_token %}
+    <h1 class="text-2xl font-bold tracking-tight">{% translate "Request a weekly slot" %}</h1>
+    <div class="space-y-1 rounded-xl border border-slate-200 bg-white p-4">
+      <p class="font-semibold">{{ venue.name }} · {{ court.name }}</p>
+      <p>🔁 {% blocktranslate %}Every {{ rule }}{% endblocktranslate %}</p>
+    </div>
+    {% include "components/form_errors.html" %}
+    {% include "components/field.html" with field=form.team %}
+    {% include "components/field.html" with field=form.weeks %}
+
+    {% if plans %}
+      <ul class="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white px-4 text-sm">
+        {% for plan, label in plans %}
+          <li class="flex justify-between py-2">
+            <span>{{ plan.day|day }}</span>
+            {% if plan.ok %}<span class="text-green-700">{% translate "Free" %}</span>{% else %}<span class="text-red-700">{% translate "Clash" %}: {{ label }}</span>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+      <p class="text-sm text-slate-600">{% translate "Weeks that clash are skipped. Nothing is reserved until the venue approves." %}</p>
+    {% endif %}
+
+    <p class="text-sm text-slate-600">{% translate "The venue will approve or reject your request within 48 hours." %}</p>
+    <div class="grid gap-3">
+      <button type="submit" name="send" value="1" class="rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white" data-disable-on-submit>{% translate "Send request" %}</button>
+      <button type="submit" name="check" value="1" class="rounded-lg border border-slate-300 bg-white px-4 py-3 font-semibold">{% translate "Check the weeks again" %}</button>
+    </div>
+  </form>
+{% endblock %}
