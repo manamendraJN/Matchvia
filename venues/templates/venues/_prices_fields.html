@@ -1,7 +1,7 @@
 {% load i18n %}
 <section class="space-y-3">
   <div class="space-y-1">
-    <h2 class="text-lg font-semibold">{% translate "Prices per booking slot" %}</h2>
+    <h2 class="section-title">{% translate "Prices per booking slot" %}</h2>
     <p class="text-sm text-slate-600">{% translate "Each slot is priced by its start time. New prices apply to new bookings only." %}</p>
   </div>
   {% if court_forms %}
@@ -23,7 +23,7 @@
 
 <section class="space-y-3">
   <div class="space-y-1">
-    <h2 class="text-lg font-semibold">{% translate "Peak times" %}</h2>
+    <h2 class="section-title">{% translate "Peak times" %}</h2>
     <p class="text-sm text-slate-600">{% translate "Slots that start inside these times use the peak price. Leave the empty row blank if you don't need it." %}</p>
   </div>
   {{ peak_formset.management_form }}

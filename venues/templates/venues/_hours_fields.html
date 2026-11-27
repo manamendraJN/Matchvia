@@ -1,7 +1,7 @@
 {% load i18n %}
 {{ formset.management_form }}
 <div class="space-y-1">
-  <h2 class="text-lg font-semibold">{% translate "Opening hours" %}</h2>
+  <h2 class="section-title">{% translate "Opening hours" %}</h2>
   <p class="text-sm text-slate-600">{% translate "Late closing times like 1:00 am belong to the day you opened." %}</p>
 </div>
 {% for error in formset.non_form_errors %}<p class="text-sm text-red-700">{{ error }}</p>{% endfor %}

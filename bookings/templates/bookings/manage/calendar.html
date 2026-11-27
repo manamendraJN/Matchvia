@@ -15,7 +15,7 @@
         {% else %}
           <form method="post" action="{% url 'manage:submit' venue.pk %}">
             {% csrf_token %}
-            <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 font-semibold text-white">{% translate "Submit for approval" %}</button>
+            <button type="submit" class="btn-primary btn-block">{% translate "Submit for approval" %}</button>
           </form>
         {% endif %}
       </div>
@@ -23,12 +23,12 @@
   {% endif %}
 
   <div class="flex items-center justify-between gap-2">
-    <a href="?date={{ prev_day.isoformat }}" class="rounded-lg border border-slate-300 bg-white px-4 py-3" aria-label="{% translate 'Previous day' %}">◀</a>
+    <a href="?date={{ prev_day.isoformat }}" class="btn-secondary" aria-label="{% translate 'Previous day' %}">◀</a>
     <div class="text-center">
       <p class="font-semibold">{{ day|day }}</p>
       {% if day != today %}<a href="?" class="text-sm text-green-700 underline">{% translate "Today" %}</a>{% endif %}
     </div>
-    <a href="?date={{ next_day.isoformat }}" class="rounded-lg border border-slate-300 bg-white px-4 py-3" aria-label="{% translate 'Next day' %}">▶</a>
+    <a href="?date={{ next_day.isoformat }}" class="btn-secondary" aria-label="{% translate 'Next day' %}">▶</a>
   </div>
 
   {% if closure %}

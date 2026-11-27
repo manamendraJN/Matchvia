@@ -8,8 +8,8 @@
     <form method="get" class="flex gap-2" role="search">
       <label for="customer-search" class="sr-only">{% translate "Search by name or phone" %}</label>
       <input id="customer-search" type="search" name="q" value="{{ query }}" placeholder="{% translate 'Name or phone' %}"
-             class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-lg focus:border-green-700 focus:outline-none">
-      <button type="submit" class="rounded-lg bg-green-700 px-4 py-3 font-semibold text-white">{% translate "Search" %}</button>
+             class="input text-lg">
+      <button type="submit" class="btn-primary">{% translate "Search" %}</button>
     </form>
 
     {% if customers %}

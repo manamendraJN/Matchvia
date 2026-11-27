@@ -27,12 +27,12 @@
       {% include "components/field.html" with field=form.sports %}
       {% include "components/field.html" with field=form.is_indoor %}
       {% include "components/field.html" with field=form.slot_minutes %}
-      <button type="submit" name="add" value="1" class="w-full rounded-lg border border-green-700 px-4 py-3 font-semibold text-green-800 hover:bg-green-50">{% translate "Add court" %}</button>
+      <button type="submit" name="add" value="1" class="btn-outline btn-block">{% translate "Add court" %}</button>
     </form>
 
     <form method="post">
       {% csrf_token %}
-      <button type="submit" name="next" value="1" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white hover:bg-green-800">{% translate "Next" %}</button>
+      <button type="submit" name="next" value="1" class="btn-primary btn-block btn-lg">{% translate "Next" %}</button>
     </form>
   </div>
 {% endblock %}

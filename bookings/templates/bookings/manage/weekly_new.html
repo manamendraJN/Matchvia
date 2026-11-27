@@ -6,7 +6,7 @@
 {% block venue_content %}
   <form method="post" action="{% url 'manage:weekly_new' venue.pk %}" class="space-y-4" novalidate>
     {% csrf_token %}
-    <h2 class="text-lg font-semibold">{% translate "Weekly booking for a regular team" %}</h2>
+    <h2 class="section-title">{% translate "Weekly booking for a regular team" %}</h2>
     {% include "components/form_errors.html" %}
     {% include "components/field.html" with field=form.customer_name %}
     {% include "components/field.html" with field=form.customer_phone %}
@@ -30,7 +30,7 @@
           {% endfor %}
         </ul>
         {% if free_weeks %}
-          <button type="submit" name="create" value="1" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white" data-disable-on-submit>
+          <button type="submit" name="create" value="1" class="btn-primary btn-block btn-lg" data-disable-on-submit>
             {% blocktranslate count n=free_weeks %}Create {{ n }} weekly booking{% plural %}Create {{ n }} weekly bookings{% endblocktranslate %}
           </button>
         {% else %}
@@ -39,6 +39,6 @@
       </section>
     {% endif %}
 
-    <button type="submit" name="preview" value="1" class="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 font-semibold">{% translate "Check the weeks" %}</button>
+    <button type="submit" name="preview" value="1" class="btn-secondary btn-block">{% translate "Check the weeks" %}</button>
   </form>
 {% endblock %}

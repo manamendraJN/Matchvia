@@ -14,8 +14,8 @@
       {% if not deleted %}
         <p class="text-slate-700">{{ customer.phone|local_phone }}</p>
         <div class="grid grid-cols-2 gap-2">
-          <a href="tel:{{ customer.phone }}" class="rounded-lg border border-green-700 px-4 py-3 text-center font-semibold text-green-800">{% translate "Call" %}</a>
-          <a href="https://wa.me/{{ customer.phone|slice:'1:' }}" rel="noopener noreferrer" class="rounded-lg border border-green-700 px-4 py-3 text-center font-semibold text-green-800">WhatsApp</a>
+          <a href="tel:{{ customer.phone }}" class="btn-outline">{% translate "Call" %}</a>
+          <a href="https://wa.me/{{ customer.phone|slice:'1:' }}" rel="noopener noreferrer" class="btn-outline">WhatsApp</a>
         </div>
       {% else %}
         <p class="text-sm text-slate-500">{% translate "This customer deleted their account. Their past bookings stay, without a name or number." %}</p>
@@ -34,7 +34,7 @@
         {% include "components/form_errors.html" %}
         {% include "components/field.html" with field=form.name %}
         {% include "components/field.html" with field=form.notes %}
-        <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 font-semibold text-white">{% translate "Save" %}</button>
+        <button type="submit" class="btn-primary btn-block">{% translate "Save" %}</button>
       </form>
     {% endif %}
 
@@ -71,7 +71,7 @@
           <p class="text-sm text-slate-700">{% translate "Blocked from online booking at your venue." %}{% if customer.block_reason %} {{ customer.block_reason }}{% endif %}</p>
           <form method="post" action="{% url 'manage:customer_unblock' venue.pk customer.pk %}">
             {% csrf_token %}
-            <button type="submit" class="w-full rounded-lg border border-slate-400 px-4 py-3 font-semibold">{% translate "Unblock" %}</button>
+            <button type="submit" class="btn-secondary btn-block">{% translate "Unblock" %}</button>
           </form>
         {% else %}
           <form method="post" action="{% url 'manage:customer_block' venue.pk customer.pk %}" class="space-y-3">
@@ -79,7 +79,7 @@
             <h3 class="font-semibold">{% translate "Block from online booking" %}</h3>
             <p class="text-sm text-slate-600">{% translate "They can't book your venue online any more. They can still book through you, and other venues are not affected." %}</p>
             {% include "components/field.html" with field=block_form.reason %}
-            <button type="submit" class="w-full rounded-lg bg-red-700 px-4 py-3 font-semibold text-white">{% translate "Block from online booking" %}</button>
+            <button type="submit" class="btn-danger btn-block">{% translate "Block from online booking" %}</button>
           </form>
         {% endif %}
       </section>

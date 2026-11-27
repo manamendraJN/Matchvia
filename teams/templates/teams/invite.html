@@ -5,12 +5,12 @@
 
 {% block content %}
   <section class="space-y-5 text-center">
-    <h1 class="text-2xl font-bold tracking-tight">{% translate "Team invite" %}</h1>
+    <h1 class="page-title">{% translate "Team invite" %}</h1>
     <p class="text-lg">{% blocktranslate with captain=invite.invited_by.name team=invite.team.name sport=invite.team.get_sport_display %}{{ captain }} invited you to join <strong>{{ team }}</strong> ({{ sport }}).{% endblocktranslate %}</p>
     <form method="post" class="grid gap-3">
       {% csrf_token %}
-      <button type="submit" name="join" value="1" class="rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white">{% translate "Join team" %}</button>
-      <button type="submit" name="decline" value="1" class="rounded-lg border border-slate-300 bg-white px-4 py-3 font-semibold">{% translate "Decline" %}</button>
+      <button type="submit" name="join" value="1" class="btn-primary btn-block btn-lg">{% translate "Join team" %}</button>
+      <button type="submit" name="decline" value="1" class="btn-secondary">{% translate "Decline" %}</button>
     </form>
   </section>
 {% endblock %}

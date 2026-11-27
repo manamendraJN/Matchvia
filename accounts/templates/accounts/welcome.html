@@ -6,7 +6,7 @@
 {% block content %}
   <section class="space-y-6">
     <div class="space-y-1">
-      <h1 class="text-2xl font-bold tracking-tight">{% translate "Welcome to Matchvia" %}</h1>
+      <h1 class="page-title">{% translate "Welcome to Matchvia" %}</h1>
       <p class="text-slate-600">{% translate "Just your name, so venues know who is booking." %}</p>
     </div>
 
@@ -27,7 +27,7 @@
       </div>
 
       {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
-      <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white hover:bg-green-800">
+      <button type="submit" class="btn-primary btn-block btn-lg">
         {% translate "Continue" %}
       </button>
     </form>

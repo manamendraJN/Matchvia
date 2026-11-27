@@ -5,7 +5,7 @@
 
 {% block content %}
   <section class="space-y-6">
-    <h1 class="text-2xl font-bold tracking-tight">{% translate "My venues" %}</h1>
+    <h1 class="page-title">{% translate "My venues" %}</h1>
 
     {% if memberships %}
       <ul class="space-y-3">
@@ -25,7 +25,7 @@
       <p class="text-slate-600">{% translate "Own a futsal or indoor cricket venue? List it on Matchvia and manage every booking in one calendar." %}</p>
     {% endif %}
 
-    <a href="{% url 'manage:create' %}" class="block w-full rounded-lg bg-green-700 px-4 py-3 text-center text-lg font-semibold text-white hover:bg-green-800">
+    <a href="{% url 'manage:create' %}" class="btn-primary btn-block btn-lg">
       {% translate "List my venue" %}
     </a>
   </section>

@@ -7,7 +7,7 @@
   <div class="space-y-8">
     <form method="post" action="{% url 'manage:profile' venue.pk %}" class="space-y-4" novalidate>
       {% csrf_token %}
-      <h2 class="text-lg font-semibold">{% translate "Details" %}</h2>
+      <h2 class="section-title">{% translate "Details" %}</h2>
       {% include "components/form_errors.html" %}
       {% include "components/field.html" with field=form.name %}
       {% include "components/field.html" with field=form.area %}
@@ -15,7 +15,7 @@
       {% include "venues/_location_fields.html" %}
 
       {% if can_edit %}
-        <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white hover:bg-green-800">
+        <button type="submit" class="btn-primary btn-block btn-lg">
           {% translate "Save details" %}
         </button>
       {% endif %}

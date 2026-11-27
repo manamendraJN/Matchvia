@@ -10,7 +10,7 @@
     <div id="venue-map" class="h-72 w-full rounded-xl ring-1 ring-slate-200"
          data-venue-map data-lat="{{ form.latitude.id_for_label }}" data-lng="{{ form.longitude.id_for_label }}"
          data-outside="{% translate 'The pin is outside Sri Lanka.' %}" data-status="geo-status"></div>
-    <button type="button" class="w-full rounded-lg border border-green-700 px-4 py-3 font-semibold text-green-800 hover:bg-green-50"
+    <button type="button" class="btn-outline btn-block"
             data-geolocate data-lat="{{ form.latitude.id_for_label }}" data-lng="{{ form.longitude.id_for_label }}" data-status="geo-status"
             data-waiting="{% translate 'Finding your location…' %}" data-done="{% translate 'Location filled in. Save to keep it.' %}"
             data-failed="{% translate 'Could not get your location. Drag the pin instead.' %}">

@@ -5,7 +5,7 @@
   <form method="post" class="space-y-4" novalidate
         action="{% if court %}{% url 'manage:court_edit' venue.pk court.pk %}{% else %}{% url 'manage:court_create' venue.pk %}{% endif %}">
     {% csrf_token %}
-    <h2 class="text-lg font-semibold">{% if court %}{% translate "Edit court" %}{% else %}{% translate "Add a court" %}{% endif %}</h2>
+    <h2 class="section-title">{% if court %}{% translate "Edit court" %}{% else %}{% translate "Add a court" %}{% endif %}</h2>
     {% include "components/form_errors.html" %}
     {% include "components/field.html" with field=form.name %}
     {% include "components/field.html" with field=form.sports %}
@@ -16,7 +16,7 @@
       {% include "components/field.html" with field=form.peak_price_lkr %}
     </div>
     <p class="text-sm text-slate-500">{% translate "Peak times are set on the Prices page. Price changes apply to new bookings only." %}</p>
-    <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white hover:bg-green-800">{% translate "Save court" %}</button>
+    <button type="submit" class="btn-primary btn-block btn-lg">{% translate "Save court" %}</button>
     <a href="{% url 'manage:courts' venue.pk %}" class="block text-center text-sm text-slate-600 hover:underline">{% translate "Cancel" %}</a>
   </form>
 {% endblock %}

@@ -3,7 +3,7 @@
 
 {% block venue_content %}
   <section class="space-y-3">
-    <h2 class="text-lg font-semibold">{% translate "Owners and staff" %}</h2>
+    <h2 class="section-title">{% translate "Owners and staff" %}</h2>
     <ul class="space-y-2">
       {% for m in members %}
         <li class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3">
@@ -25,12 +25,12 @@
 
   <form method="post" action="{% url 'manage:staff' venue.pk %}" class="space-y-4 rounded-xl border border-slate-200 bg-white p-4" novalidate>
     {% csrf_token %}
-    <h2 class="text-lg font-semibold">{% translate "Add staff" %}</h2>
+    <h2 class="section-title">{% translate "Add staff" %}</h2>
     {% include "components/form_errors.html" %}
     {% include "components/field.html" with field=form.name %}
     {% include "components/field.html" with field=form.phone %}
     {% include "components/field.html" with field=form.role %}
     <p class="text-sm text-slate-600">{% translate "They'll get an SMS and sign in with their own number." %}</p>
-    <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 font-semibold text-white">{% translate "Add" %}</button>
+    <button type="submit" class="btn-primary btn-block">{% translate "Add" %}</button>
   </form>
 {% endblock %}

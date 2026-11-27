@@ -5,60 +5,67 @@
 
 {% block content %}
   <section class="space-y-5">
-    <a href="{{ back_url }}" class="text-sm text-slate-600 hover:underline">← {% translate "Back to times" %}</a>
-    <h1 class="text-2xl font-bold tracking-tight">{% translate "Review booking" %}</h1>
+    <a href="{{ back_url }}" class="inline-flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-900">{% icon "arrow-left" "size-4" %}{% translate "Back to times" %}</a>
+    <h1 class="page-title">{% translate "Review booking" %}</h1>
 
-    <div class="space-y-1 rounded-xl border border-slate-200 bg-white p-4">
-      <p class="font-semibold">{{ venue.name }} · {{ court.name }}</p>
-      <p class="text-lg">{{ when }}</p>
+    <div class="card flex items-start gap-4">
+      <span class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-700">{% icon "calendar" "size-6" %}</span>
+      <div class="min-w-0">
+        <p class="font-bold">{{ venue.name }} · {{ court.name }}</p>
+        <p class="text-lg tabular-nums">{{ when }}</p>
+      </div>
     </div>
 
     {% if options|length > 1 %}
       <fieldset class="space-y-2">
-        <legend class="text-sm font-medium text-slate-700">{% translate "How long?" %}</legend>
+        <legend class="text-sm font-semibold text-slate-800">{% translate "How long?" %}</legend>
         <div class="grid grid-cols-3 gap-2">
           {% for option in options %}
-            <a href="{{ option.url }}" class="flex min-h-12 flex-col items-center justify-center rounded-lg border px-2 py-2 text-center {% if option.slots == slots %}border-green-700 bg-green-700 text-white{% else %}border-slate-300 bg-white{% endif %}">
-              <span class="font-semibold">{% blocktranslate with m=option.minutes %}{{ m }} min{% endblocktranslate %}</span>
-              <span class="text-xs">{{ option.total|lkr }}</span>
+            <a href="{{ option.url }}" class="flex min-h-14 flex-col items-center justify-center rounded-xl border-2 px-2 py-2 text-center transition-colors duration-150 {% if option.slots == slots %}border-green-700 bg-green-700 text-white{% else %}border-slate-200 bg-white hover:border-green-600{% endif %}"{% if option.slots == slots %} aria-current="true"{% endif %}>
+              <span class="font-bold">{% blocktranslate with m=option.minutes %}{{ m }} min{% endblocktranslate %}</span>
+              <span class="text-xs tabular-nums">{{ option.total|lkr }}</span>
             </a>
           {% endfor %}
         </div>
-        <p class="text-sm text-slate-500">{% blocktranslate with n=venue.settings.max_slots_per_booking %}Up to {{ n }} slots online. Call the venue for longer.{% endblocktranslate %}</p>
+        <p class="text-sm text-slate-600">{% blocktranslate with n=venue.settings.max_slots_per_booking %}Up to {{ n }} slots online. Call the venue for longer.{% endblocktranslate %}</p>
       </fieldset>
     {% endif %}
 
-    <div class="space-y-2 rounded-xl border border-slate-200 bg-white p-4">
+    <div class="card space-y-2">
       {% for slot in breakdown %}
-        <p class="flex justify-between text-sm"><span>{{ slot.start|time12 }}{% if slot.is_peak %} · {% translate "peak" %}{% endif %}</span><span>{{ slot.price_lkr|lkr }}</span></p>
+        <p class="flex justify-between text-sm tabular-nums"><span>{{ slot.start|time12 }}{% if slot.is_peak %} · <span class="font-medium text-amber-800">{% translate "peak" %}</span>{% endif %}</span><span>{{ slot.price_lkr|lkr }}</span></p>
       {% endfor %}
-      <p class="flex justify-between border-t border-slate-200 pt-2 text-lg font-bold"><span>{% translate "Total" %}</span><span>{{ total|lkr }}</span></p>
-      <p class="text-sm font-medium text-green-800">{% translate "Pay at the venue" %}</p>
+      <p class="flex justify-between border-t border-slate-200 pt-2 text-lg font-extrabold tabular-nums"><span>{% translate "Total" %}</span><span>{{ total|lkr }}</span></p>
+      <p class="flex items-center gap-1.5 text-sm font-semibold text-green-800">{% icon "banknote" "size-4" %}{% translate "Pay at the venue" %}</p>
     </div>
 
-    <p class="text-sm text-slate-600">
-      {% blocktranslate with day=deadline|day time=deadline|time12 %}Free cancellation until {{ day }}, {{ time }}. After that, call the venue.{% endblocktranslate %}
+    <p class="flex items-start gap-2 text-sm text-slate-600">
+      {% icon "info" "mt-0.5 size-4 shrink-0" %}
+      <span>{% blocktranslate with day=deadline|day time=deadline|time12 %}Free cancellation until {{ day }}, {{ time }}. After that, call the venue.{% endblocktranslate %}</span>
     </p>
 
-    <form method="post" action="{% url 'book_confirm' %}">
+    <form method="post" action="{% url 'book_confirm' %}" class="space-y-4">
       {% csrf_token %}
       {{ form.court }}{{ form.start }}<input type="hidden" name="slots" value="{{ slots }}">
       {% if teams %}
-        <div class="mb-4 space-y-1">
-          <label for="review-team" class="block text-sm font-medium text-slate-700">{% translate "Team (optional)" %}</label>
-          <select id="review-team" name="team" class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-3">
+        <div class="space-y-1.5">
+          <label for="review-team" class="block text-sm font-semibold text-slate-800">{% translate "Team (optional)" %}</label>
+          <select id="review-team" name="team" class="input">
             <option value="">{% translate "No team" %}</option>
             {% for team in teams %}<option value="{{ team.pk }}">{{ team.name }}</option>{% endfor %}
           </select>
-          <p class="text-sm text-slate-500">{% translate "Team members will see this booking." %}</p>
+          <p class="text-sm text-slate-600">{% translate "Team members will see this booking." %}</p>
         </div>
       {% endif %}
-      <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white hover:bg-green-800" data-disable-on-submit>
-        {% translate "Confirm booking" %}
-      </button>
+      {# Main action within thumb reach, above the bottom bar on phones (screens 1.2). #}
+      <div class="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] -mx-4 bg-slate-50/95 px-4 py-3 backdrop-blur md:static md:mx-0 md:bg-transparent md:p-0">
+        <button type="submit" class="btn-primary btn-block btn-lg" data-disable-on-submit>
+          {% icon "check" "size-5" %}{% translate "Confirm booking" %}
+        </button>
+      </div>
     </form>
     {% if teams %}
-      <a href="{{ weekly_url }}" class="block text-center font-medium text-green-700 underline">{% icon "repeat" "inline size-4 shrink-0 align-[-0.15em] text-green-700" %} {% translate "Ask for this time every week" %}</a>
+      <a href="{{ weekly_url }}" class="link flex items-center justify-center gap-1.5">{% icon "repeat" "size-4" %}{% translate "Ask for this time every week" %}</a>
     {% endif %}
   </section>
 {% endblock %}

@@ -1,7 +1,7 @@
 {% load i18n %}
 {# Photos, logo and cover photo (V2/V25). Each form posts on its own. #}
 <section class="space-y-4">
-  <h2 class="text-lg font-semibold">{% translate "Photos" %}</h2>
+  <h2 class="section-title">{% translate "Photos" %}</h2>
   {% if photos %}
     <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3">
       {% for photo in photos %}
@@ -28,7 +28,7 @@
         {% if return_to %}<input type="hidden" name="return_to" value="{{ return_to }}">{% endif %}
         {{ upload_form.image }}
         <p class="text-sm text-slate-500">{% blocktranslate %}JPG, PNG or WebP, up to 5 MB. Up to {{ max_photos }} photos.{% endblocktranslate %}</p>
-        <button type="submit" class="rounded-lg bg-green-700 px-4 py-2 font-semibold text-white hover:bg-green-800">{% translate "Add photo" %}</button>
+        <button type="submit" class="btn-primary">{% translate "Add photo" %}</button>
       </form>
     {% endif %}
   {% endif %}
@@ -36,26 +36,26 @@
 
 <section class="grid gap-6 sm:grid-cols-2">
   <div class="space-y-2">
-    <h2 class="text-lg font-semibold">{% translate "Logo" %}</h2>
+    <h2 class="section-title">{% translate "Logo" %}</h2>
     {% if venue.logo %}<img src="{{ venue.logo.url }}" alt="{% translate 'Venue logo' %}" class="size-24 rounded-lg bg-white object-contain ring-1 ring-slate-200">{% endif %}
     {% if can_edit %}
       <form method="post" action="{% url 'manage:logo' venue.pk %}" enctype="multipart/form-data" class="space-y-2">
         {% csrf_token %}
         {% if return_to %}<input type="hidden" name="return_to" value="{{ return_to }}">{% endif %}
         {{ upload_form.image }}
-        <button type="submit" class="rounded-lg border border-slate-300 bg-white px-4 py-2 font-semibold text-slate-800 hover:bg-slate-100">{% translate "Upload logo" %}</button>
+        <button type="submit" class="btn-secondary">{% translate "Upload logo" %}</button>
       </form>
     {% endif %}
   </div>
   <div class="space-y-2">
-    <h2 class="text-lg font-semibold">{% translate "Cover photo" %}</h2>
+    <h2 class="section-title">{% translate "Cover photo" %}</h2>
     {% if venue.cover_photo %}<img src="{{ venue.cover_photo.url }}" alt="{% translate 'Cover photo' %}" class="aspect-[16/9] w-full rounded-lg object-cover">{% endif %}
     {% if can_edit %}
       <form method="post" action="{% url 'manage:cover' venue.pk %}" enctype="multipart/form-data" class="space-y-2">
         {% csrf_token %}
         {% if return_to %}<input type="hidden" name="return_to" value="{{ return_to }}">{% endif %}
         {{ upload_form.image }}
-        <button type="submit" class="rounded-lg border border-slate-300 bg-white px-4 py-2 font-semibold text-slate-800 hover:bg-slate-100">{% translate "Upload cover photo" %}</button>
+        <button type="submit" class="btn-secondary">{% translate "Upload cover photo" %}</button>
       </form>
     {% endif %}
   </div>

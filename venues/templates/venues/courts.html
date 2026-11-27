@@ -33,7 +33,7 @@
     {% endif %}
 
     {% if can_edit %}
-      <a href="{% url 'manage:court_create' venue.pk %}" class="block w-full rounded-lg bg-green-700 px-4 py-3 text-center font-semibold text-white hover:bg-green-800">{% translate "Add a court" %}</a>
+      <a href="{% url 'manage:court_create' venue.pk %}" class="btn-primary btn-block">{% translate "Add a court" %}</a>
     {% endif %}
   </div>
 {% endblock %}

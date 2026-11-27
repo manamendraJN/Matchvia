@@ -10,7 +10,7 @@
 {% block content %}
   <section class="space-y-6">
     <div class="space-y-1">
-      <h1 class="text-2xl font-bold tracking-tight">{% translate "Sign in" %}</h1>
+      <h1 class="page-title">{% translate "Sign in" %}</h1>
       <p class="text-slate-600">{% translate "Enter your mobile number. We'll send you a 6-digit code by SMS." %}</p>
     </div>
 
@@ -20,7 +20,7 @@
       {% include "components/field.html" with field=form.phone %}
       {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
       {% if turnstile_site_key %}<div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-size="flexible"></div>{% endif %}
-      <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white hover:bg-green-800">
+      <button type="submit" class="btn-primary btn-block btn-lg">
         {% translate "Send code" %}
       </button>
     </form>

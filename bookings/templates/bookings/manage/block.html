@@ -6,7 +6,7 @@
 {% block venue_content %}
   <form method="post" action="{% url 'manage:block_new' venue.pk %}" class="space-y-4" novalidate>
     {% csrf_token %}
-    <h2 class="text-lg font-semibold">{% translate "Block time" %}</h2>
+    <h2 class="section-title">{% translate "Block time" %}</h2>
     {% include "components/form_errors.html" %}
     {% if conflicts %}
       <ul class="space-y-1 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-900">
@@ -25,13 +25,13 @@
       <legend class="text-sm font-medium text-slate-700">{% translate "Reason" %}</legend>
       <div class="grid grid-cols-2 gap-2">
         {% for radio in form.reason %}
-          <label class="flex min-h-12 cursor-pointer items-center justify-center rounded-lg border border-slate-300 bg-white px-2 text-center text-sm font-medium has-checked:border-slate-700 has-checked:bg-slate-700 has-checked:text-white">
+          <label class="segment text-sm">
             {{ radio.tag }}{{ radio.choice_label }}
           </label>
         {% endfor %}
       </div>
     </fieldset>
     {% include "components/field.html" with field=form.notes %}
-    <button type="submit" class="w-full rounded-lg bg-slate-800 px-4 py-3 text-lg font-semibold text-white" data-disable-on-submit>{% translate "Block time" %}</button>
+    <button type="submit" class="btn-dark btn-block btn-lg" data-disable-on-submit>{% translate "Block time" %}</button>
   </form>
 {% endblock %}

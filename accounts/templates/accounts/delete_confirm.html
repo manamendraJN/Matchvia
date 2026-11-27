@@ -6,7 +6,7 @@
 {% block content %}
   <section class="space-y-6">
     <div class="space-y-1">
-      <h1 class="text-2xl font-bold tracking-tight">{% translate "Confirm deletion" %}</h1>
+      <h1 class="page-title">{% translate "Confirm deletion" %}</h1>
       <p class="text-slate-600">
         {% blocktranslate with phone=phone_display %}Enter the code we sent to {{ phone }}. Your account will be deleted immediately.{% endblocktranslate %}
       </p>
@@ -16,7 +16,7 @@
       {% csrf_token %}
       {% include "components/form_errors.html" %}
       {% include "components/field.html" with field=form.code %}
-      <button type="submit" class="w-full rounded-lg bg-red-700 px-4 py-3 text-lg font-semibold text-white hover:bg-red-800">
+      <button type="submit" class="btn-danger btn-block btn-lg">
         {% translate "Delete my account" %}
       </button>
     </form>

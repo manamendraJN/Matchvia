@@ -5,7 +5,7 @@
 
 {% block content %}
   <section class="space-y-6">
-    <h1 class="text-2xl font-bold tracking-tight">{% translate "Delete your account" %}</h1>
+    <h1 class="page-title">{% translate "Delete your account" %}</h1>
 
     <div class="space-y-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
       <p class="font-semibold">{% translate "This can't be undone." %}</p>
@@ -33,7 +33,7 @@
         <p class="text-sm text-slate-600">
           {% blocktranslate with phone=phone_display %}To confirm, we'll send a code to {{ phone }}.{% endblocktranslate %}
         </p>
-        <button type="submit" class="w-full rounded-lg bg-red-700 px-4 py-3 font-semibold text-white hover:bg-red-800">
+        <button type="submit" class="btn-danger btn-block">
           {% translate "Send confirmation code" %}
         </button>
       </form>

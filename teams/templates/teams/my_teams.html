@@ -5,7 +5,7 @@
 
 {% block content %}
   <section class="space-y-5">
-    <h1 class="text-2xl font-bold tracking-tight">{% translate "My teams" %}</h1>
+    <h1 class="page-title">{% translate "My teams" %}</h1>
 
     {% if invites %}
       <div class="space-y-2">
@@ -37,6 +37,6 @@
       <p class="text-slate-600">{% translate "No teams yet. Create one to book weekly slots and share games with your team." %}</p>
     {% endif %}
 
-    <a href="{% url 'team_create' %}" class="block w-full rounded-lg bg-green-700 px-4 py-3 text-center text-lg font-semibold text-white">{% translate "Create team" %}</a>
+    <a href="{% url 'team_create' %}" class="btn-primary btn-block btn-lg">{% translate "Create team" %}</a>
   </section>
 {% endblock %}

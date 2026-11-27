@@ -1,46 +1,40 @@
-{% load i18n %}
-{# Search filters (P1). Radio chips are styled through the hidden input's checked state. #}
+{% load i18n matchvia %}
+{# Search filters (P1). Radio choices are pills; the hidden input's state styles the label. #}
 <form method="get" action="{% url 'search' %}" class="space-y-5" {% if live %}hx-get="{% url 'search' %}" hx-trigger="change" hx-target="#results" hx-push-url="true"{% endif %}>
   <fieldset class="space-y-2">
-    <legend class="text-sm font-medium text-slate-700">{% translate "Sport" %}</legend>
+    <legend class="text-sm font-semibold text-slate-800">{% translate "Sport" %}</legend>
     <div class="grid grid-cols-2 gap-2">
       {% for radio in form.sport %}
-        <label class="flex min-h-12 cursor-pointer items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-3 text-center font-semibold has-checked:border-green-700 has-checked:bg-green-700 has-checked:text-white">
-          {{ radio.tag }}{{ radio.choice_label }}
-        </label>
+        <label class="segment">{{ radio.tag }}{{ radio.choice_label }}</label>
       {% endfor %}
     </div>
   </fieldset>
 
-  <div class="space-y-1">
-    <label for="{{ form.area.id_for_label }}" class="block text-sm font-medium text-slate-700">{{ form.area.label }}</label>
+  <div class="space-y-1.5">
+    <label for="{{ form.area.id_for_label }}" class="flex items-center gap-1.5 text-sm font-semibold text-slate-800">{% icon "map-pin" "size-4 text-slate-500" %}{{ form.area.label }}</label>
     {{ form.area }}
-    {% for error in form.area.errors %}<p class="text-sm text-red-700">{{ error }}</p>{% endfor %}
+    {% for error in form.area.errors %}<p class="flex items-start gap-1.5 text-sm font-medium text-red-700">{% icon "alert" "mt-0.5 size-4 shrink-0" %}{{ error }}</p>{% endfor %}
   </div>
 
   <fieldset class="space-y-2">
-    <legend class="text-sm font-medium text-slate-700">{% translate "Day" %}</legend>
-    <div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+    <legend class="flex items-center gap-1.5 text-sm font-semibold text-slate-800">{% icon "calendar" "size-4 text-slate-500" %}{% translate "Day" %}</legend>
+    <div class="-mx-1 flex gap-2 overflow-x-auto px-1 pt-1 pb-2">
       {% for radio in form.date %}
-        <label class="flex min-h-12 shrink-0 cursor-pointer items-center rounded-full border border-slate-300 bg-white px-4 text-sm font-medium has-checked:border-green-700 has-checked:bg-green-700 has-checked:text-white">
-          {{ radio.tag }}{{ radio.choice_label }}
-        </label>
+        <label class="pill">{{ radio.tag }}{{ radio.choice_label }}</label>
       {% endfor %}
     </div>
   </fieldset>
 
   <fieldset class="space-y-2">
-    <legend class="text-sm font-medium text-slate-700">{% translate "Time" %}</legend>
+    <legend class="flex items-center gap-1.5 text-sm font-semibold text-slate-800">{% icon "clock" "size-4 text-slate-500" %}{% translate "Time" %}</legend>
     <div class="flex flex-wrap gap-2">
       {% for radio in form.time %}
-        <label class="flex min-h-12 cursor-pointer items-center rounded-full border border-slate-300 bg-white px-4 text-sm font-medium has-checked:border-green-700 has-checked:bg-green-700 has-checked:text-white">
-          {{ radio.tag }}{{ radio.choice_label }}
-        </label>
+        <label class="pill">{{ radio.tag }}{{ radio.choice_label }}</label>
       {% endfor %}
     </div>
   </fieldset>
 
-  <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white hover:bg-green-800">
-    {% translate "Find a court" %}
+  <button type="submit" class="btn-primary btn-block btn-lg">
+    {% icon "search" "size-5" %}{% translate "Find a court" %}
   </button>
 </form>

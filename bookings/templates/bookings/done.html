@@ -4,22 +4,24 @@
 {% block title %}{% translate "You're booked!" %} · Matchvia{% endblock %}
 
 {% block content %}
-  <section class="space-y-5 text-center">
-    <p class="mx-auto flex size-16 items-center justify-center rounded-full bg-green-100 text-green-800">{% icon "check" "size-8" %}</p>
-    <h1 class="text-2xl font-bold tracking-tight">{% translate "You're booked!" %}</h1>
-    <p class="text-lg font-semibold tracking-wide">{{ booking.display_reference }}</p>
+  <section class="space-y-6 text-center">
+    <div class="space-y-3 pt-2">
+      <p class="mx-auto flex size-20 items-center justify-center rounded-full bg-green-700 text-white shadow-lg shadow-green-700/20">{% icon "check" "size-10" %}</p>
+      <h1 class="page-title">{% translate "You're booked!" %}</h1>
+      <p class="mx-auto inline-block rounded-xl bg-white px-4 py-2 font-mono text-lg font-bold tracking-widest ring-1 ring-slate-200">{{ booking.display_reference }}</p>
+    </div>
 
-    <div class="space-y-1 rounded-xl border border-slate-200 bg-white p-4 text-left">
-      <p class="font-semibold">{{ booking.venue.name }} · {{ booking.court.name }}</p>
-      <p>{{ when }}</p>
-      <p>{{ booking.price_lkr|lkr }} · {% translate "Pay at the venue" %}</p>
+    <div class="card space-y-1 text-left">
+      <p class="font-bold">{{ booking.venue.name }} · {{ booking.court.name }}</p>
+      <p class="tabular-nums">{{ when }}</p>
+      <p class="tabular-nums">{{ booking.price_lkr|lkr }} · {% translate "Pay at the venue" %}</p>
     </div>
     <p class="text-sm text-slate-600">{% translate "We've sent the details by SMS." %}</p>
 
     <div class="grid gap-3">
-      <a href="{{ share_url }}" rel="noopener" target="_blank" class="rounded-lg bg-green-700 px-4 py-3 font-semibold text-white">{% translate "Share on WhatsApp" %}</a>
-      {% if directions_url %}<a href="{{ directions_url }}" rel="noopener" target="_blank" class="rounded-lg border border-slate-300 bg-white px-4 py-3 font-semibold">{% translate "Directions" %}</a>{% endif %}
-      <a href="{% url 'my_bookings' %}" class="rounded-lg border border-slate-300 bg-white px-4 py-3 font-semibold">{% translate "My bookings" %}</a>
+      <a href="{{ share_url }}" rel="noopener" target="_blank" class="btn-primary btn-block">{% icon "share" "size-5" %}{% translate "Share on WhatsApp" %}</a>
+      {% if directions_url %}<a href="{{ directions_url }}" rel="noopener" target="_blank" class="btn-secondary btn-block">{% icon "map-pin" "size-5 text-green-700" %}{% translate "Directions" %}</a>{% endif %}
+      <a href="{% url 'my_bookings' %}" class="btn-secondary btn-block">{% icon "calendar-check" "size-5 text-green-700" %}{% translate "My bookings" %}</a>
     </div>
   </section>
 {% endblock %}

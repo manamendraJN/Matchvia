@@ -6,7 +6,7 @@
 {% block content %}
   <form method="post" class="space-y-5" novalidate>
     {% csrf_token %}
-    <h1 class="text-2xl font-bold tracking-tight">{% translate "Request a weekly slot" %}</h1>
+    <h1 class="page-title">{% translate "Request a weekly slot" %}</h1>
     <div class="space-y-1 rounded-xl border border-slate-200 bg-white p-4">
       <p class="font-semibold">{{ venue.name }} · {{ court.name }}</p>
       <p>{% icon "repeat" "inline size-4 shrink-0 align-[-0.15em] text-green-700" %} {% blocktranslate %}Every {{ rule }}{% endblocktranslate %}</p>
@@ -29,8 +29,8 @@
 
     <p class="text-sm text-slate-600">{% translate "The venue will approve or reject your request within 48 hours." %}</p>
     <div class="grid gap-3">
-      <button type="submit" name="send" value="1" class="rounded-lg bg-green-700 px-4 py-3 text-lg font-semibold text-white" data-disable-on-submit>{% translate "Send request" %}</button>
-      <button type="submit" name="check" value="1" class="rounded-lg border border-slate-300 bg-white px-4 py-3 font-semibold">{% translate "Check the weeks again" %}</button>
+      <button type="submit" name="send" value="1" class="btn-primary btn-block btn-lg" data-disable-on-submit>{% translate "Send request" %}</button>
+      <button type="submit" name="check" value="1" class="btn-secondary">{% translate "Check the weeks again" %}</button>
     </div>
   </form>
 {% endblock %}

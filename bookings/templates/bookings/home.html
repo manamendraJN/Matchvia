@@ -3,18 +3,31 @@
 
 {% block content %}
   <section class="space-y-6">
-    <h1 class="text-3xl font-bold leading-tight tracking-tight">
-      {% translate "Book your court." %}<br>
-      <span class="text-green-700">{% translate "Bring your team." %}</span>
-    </h1>
+    <div class="relative overflow-hidden rounded-3xl bg-green-800 px-5 py-7 text-white shadow-sm">
+      <span class="pointer-events-none absolute -top-10 -right-10 size-40 rounded-full border-[18px] border-white/10" aria-hidden="true"></span>
+      <span class="pointer-events-none absolute right-16 -bottom-14 size-28 rounded-full border-[14px] border-white/5" aria-hidden="true"></span>
+      <p class="relative text-sm font-semibold text-green-200">{% translate "Futsal and indoor cricket" %}</p>
+      <h1 class="relative mt-1 text-3xl leading-tight font-extrabold tracking-tight">
+        {% translate "Book your court." %}<br>
+        <span class="text-green-200">{% translate "Bring your team." %}</span>
+      </h1>
+      <p class="relative mt-3 max-w-xs text-sm text-green-50">{% translate "See free times at venues near you and book in under a minute. Pay at the venue." %}</p>
+    </div>
 
     {% if next_game %}
-      <a href="{% url 'booking_detail' next_game.display_reference %}" class="block rounded-xl border border-green-200 bg-green-50 p-4">
-        <span class="block text-sm text-green-800">{% translate "Next game" %}</span>
-        <span class="block font-semibold">{{ next_game.start_at|day }}, {{ next_game.start_at|time12 }} · {{ next_game.venue.name }}</span>
+      <a href="{% url 'booking_detail' next_game.display_reference %}" class="card-link flex items-center gap-4 border-green-200 bg-green-50">
+        <span class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-green-700 text-white">{% icon "calendar-check" "size-6" %}</span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-sm font-semibold text-green-800">{% translate "Next game" %}</span>
+          <span class="block truncate font-semibold">{{ next_game.start_at|day }}, {{ next_game.start_at|time12 }} · {{ next_game.venue.name }}</span>
+        </span>
+        {% icon "chevron-right" "size-5 text-green-700" %}
       </a>
     {% endif %}
 
-    {% include "bookings/_search_form.html" %}
+    <div class="card p-5">
+      <h2 class="section-title mb-4">{% translate "Find a free court" %}</h2>
+      {% include "bookings/_search_form.html" %}
+    </div>
   </section>
 {% endblock %}

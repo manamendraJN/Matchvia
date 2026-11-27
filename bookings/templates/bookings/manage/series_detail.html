@@ -26,14 +26,14 @@
       {% if can_decide %}
         <form method="post" action="{% url 'manage:series_approve' venue.pk series.pk %}">
           {% csrf_token %}
-          <button type="submit" class="w-full rounded-lg bg-green-700 px-4 py-3 font-semibold text-white" data-disable-on-submit>
+          <button type="submit" class="btn-primary btn-block" data-disable-on-submit>
             {% blocktranslate with n=free_weeks s=skip_weeks %}Approve: {{ n }} weeks will be booked, {{ s }} skipped{% endblocktranslate %}
           </button>
         </form>
         <form method="post" action="{% url 'manage:series_reject' venue.pk series.pk %}" class="space-y-2">
           {% csrf_token %}
           <label for="reject-reason" class="block text-sm font-medium">{% translate "Reason (optional, sent to the captain)" %}</label>
-          <input id="reject-reason" name="reason" maxlength="255" class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-3">
+          <input id="reject-reason" name="reason" maxlength="255" class="input">
           <button type="submit" class="w-full rounded-lg border border-red-300 bg-white px-4 py-3 font-semibold text-red-700">{% translate "Reject" %}</button>
         </form>
       {% else %}
@@ -60,11 +60,11 @@
       <h3 class="font-semibold text-red-800">{% translate "Cancel all remaining weeks" %}</h3>
       <div class="grid gap-2">
         {% for radio in cancel_form.reason %}
-          <label class="flex min-h-12 cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-4 font-medium has-checked:border-red-700 has-checked:bg-red-50">{{ radio.tag }}{{ radio.choice_label }}</label>
+          <label class="segment justify-start">{{ radio.tag }}{{ radio.choice_label }}</label>
         {% endfor %}
       </div>
       <p class="text-sm text-slate-600">{% translate "To cancel just one week, open that week and cancel it." %}</p>
-      <button type="submit" class="w-full rounded-lg bg-red-700 px-4 py-3 font-semibold text-white" data-disable-on-submit>{% translate "Cancel remaining weeks" %}</button>
+      <button type="submit" class="btn-danger btn-block" data-disable-on-submit>{% translate "Cancel remaining weeks" %}</button>
     </form>
   {% endif %}
 {% endblock %}

@@ -2,51 +2,70 @@
 {% load i18n matchvia %}
 
 {% block title %}{{ venue.name }} · Matchvia{% endblock %}
+{% block main_width %}max-w-3xl{% endblock %}
 
 {% block content %}
-  <article class="space-y-5">
-    {% if venue.cover_photo %}
-      <img src="{{ venue.cover_photo.url }}" alt="" class="-mx-4 -mt-6 aspect-[16/9] w-[calc(100%+2rem)] max-w-none object-cover">
-    {% endif %}
-
-    <header class="space-y-1">
-      <h1 class="text-2xl font-bold tracking-tight">{{ venue.name }}</h1>
-      <p class="text-slate-600">{{ venue.area }}{% if venue.address %} · {{ venue.address }}{% endif %}</p>
+  <article class="space-y-6">
+    <header class="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200">
+      {% if venue.cover_photo %}
+        <img src="{{ venue.cover_photo.url }}" alt="" class="aspect-video w-full object-cover sm:aspect-[21/9]">
+      {% else %}
+        <div class="flex aspect-[21/9] w-full items-center justify-center bg-green-800 text-green-200" aria-hidden="true">{% icon "ball" "size-16" %}</div>
+      {% endif %}
+      <div class="space-y-4 p-5">
+        <div class="flex items-start gap-3">
+          {% if venue.logo %}<img src="{{ venue.logo.url }}" alt="" class="size-12 shrink-0 rounded-xl bg-white object-contain ring-1 ring-slate-200">{% endif %}
+          <div class="min-w-0">
+            <h1 class="page-title">{{ venue.name }}</h1>
+            <p class="mt-1 flex items-start gap-1.5 text-slate-600">{% icon "map-pin" "mt-1 size-4 shrink-0" %}<span>{{ venue.area }}{% if venue.address %} · {{ venue.address }}{% endif %}</span></p>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <a href="tel:{{ venue.phone }}" class="btn-secondary">{% icon "phone" "size-5 text-green-700" %}{% translate "Call" %}</a>
+          {% if directions_url %}
+            <a href="{{ directions_url }}" rel="noopener" target="_blank" class="btn-secondary">{% icon "map-pin" "size-5 text-green-700" %}{% translate "Directions" %}</a>
+          {% endif %}
+        </div>
+      </div>
     </header>
 
-    <div class="grid grid-cols-2 gap-3">
-      <a href="tel:{{ venue.phone }}" class="rounded-lg border border-slate-300 bg-white px-4 py-3 text-center font-semibold">{% translate "Call" %}</a>
-      {% if directions_url %}
-        <a href="{{ directions_url }}" rel="noopener" target="_blank" class="rounded-lg border border-slate-300 bg-white px-4 py-3 text-center font-semibold">{% translate "Directions" %}</a>
-      {% endif %}
-    </div>
-
     {% if view.state == "not_public" %}
-      <p class="rounded-lg bg-amber-50 px-4 py-3 text-amber-900">{% translate "This venue isn't taking online bookings yet. Call them to book." %}</p>
+      <p class="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">{% icon "info" "mt-0.5 size-5 shrink-0" %}{% translate "This venue isn't taking online bookings yet. Call them to book." %}</p>
     {% else %}
-      <nav class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1" aria-label="{% translate 'Choose a day' %}">
-        {% for iso, label in days %}
-          <a href="?date={{ iso }}" hx-get="?date={{ iso }}" hx-target="#venue-day" hx-push-url="true"
-             class="flex min-h-12 shrink-0 items-center rounded-full border px-4 text-sm font-medium {% if iso == day.isoformat %}border-green-700 bg-green-700 text-white{% else %}border-slate-300 bg-white{% endif %}">{{ label }}</a>
-        {% endfor %}
-      </nav>
-      <div id="venue-day">{% include "bookings/_venue_day.html" %}</div>
+      <section class="space-y-4" aria-labelledby="free-times">
+        <h2 id="free-times" class="section-title">{% translate "Free times" %}</h2>
+        <nav class="-mx-1 flex gap-2 overflow-x-auto px-1 pt-1 pb-2" aria-label="{% translate 'Choose a day' %}">
+          {% for iso, label in days %}
+            <a href="?date={{ iso }}" hx-get="?date={{ iso }}" hx-target="#venue-day" hx-push-url="true"
+               class="{% if iso == day.isoformat %}pill-link-on{% else %}pill-link{% endif %}"{% if iso == day.isoformat %} aria-current="date"{% endif %}>{{ label }}</a>
+          {% endfor %}
+        </nav>
+        <div id="venue-day" aria-live="polite">{% include "bookings/_venue_day.html" %}</div>
+      </section>
     {% endif %}
 
-    <details class="rounded-xl border border-slate-200 bg-white p-4">
-      <summary class="cursor-pointer font-semibold">{% translate "Cancellation and facilities" %}</summary>
-      <div class="mt-3 space-y-2 text-sm text-slate-700">
+    <details class="card group">
+      <summary class="flex min-h-8 cursor-pointer list-none items-center justify-between gap-3 font-semibold">
+        <span class="flex items-center gap-2">{% icon "info" "size-5 text-green-700" %}{% translate "Cancellation and facilities" %}</span>
+        {% icon "chevron-right" "size-5 text-slate-400 transition-transform duration-150 group-open:rotate-90" %}
+      </summary>
+      <div class="mt-3 space-y-3 border-t border-slate-100 pt-3 text-sm text-slate-700">
         <p>{% blocktranslate with n=venue.settings.cancellation_window_hours %}Free cancellation up to {{ n }} hours before the start. Pay at the venue.{% endblocktranslate %}</p>
-        {% if facilities %}<p>{{ facilities|join:" · " }}</p>{% endif %}
+        {% if facilities %}
+          <ul class="flex flex-wrap gap-2">{% for f in facilities %}<li class="badge-slate px-3 py-1">{% icon "check" "size-3.5" %}{{ f }}</li>{% endfor %}</ul>
+        {% endif %}
         {% if venue.description %}<p>{{ venue.description|linebreaksbr }}</p>{% endif %}
       </div>
     </details>
 
     {% if photos %}
-      <details class="rounded-xl border border-slate-200 bg-white p-4">
-        <summary class="cursor-pointer font-semibold">{% translate "Photos" %}</summary>
-        <div class="mt-3 grid grid-cols-2 gap-2">
-          {% for photo in photos %}<img src="{{ photo.image.url }}" alt="" loading="lazy" class="aspect-[4/3] w-full rounded-lg object-cover">{% endfor %}
+      <details class="card group">
+        <summary class="flex min-h-8 cursor-pointer list-none items-center justify-between gap-3 font-semibold">
+          <span>{% translate "Photos" %}</span>
+          {% icon "chevron-right" "size-5 text-slate-400 transition-transform duration-150 group-open:rotate-90" %}
+        </summary>
+        <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {% for photo in photos %}<img src="{{ photo.image.url }}" alt="{% translate 'Venue photo' %}" loading="lazy" class="aspect-4/3 w-full rounded-xl object-cover">{% endfor %}
         </div>
       </details>
     {% endif %}

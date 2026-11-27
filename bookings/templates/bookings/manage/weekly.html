@@ -5,8 +5,8 @@
 
 {% block venue_content %}
   <div class="flex items-center justify-between gap-3">
-    <h2 class="text-lg font-semibold">{% translate "Weekly bookings and requests" %}</h2>
-    <a href="{% url 'manage:weekly_new' venue.pk %}" class="rounded-lg bg-green-700 px-4 py-2 font-semibold text-white">{% translate "New weekly booking" %}</a>
+    <h2 class="section-title">{% translate "Weekly bookings and requests" %}</h2>
+    <a href="{% url 'manage:weekly_new' venue.pk %}" class="btn-primary">{% translate "New weekly booking" %}</a>
   </div>
   {% if rows %}
     <ul class="space-y-2">
